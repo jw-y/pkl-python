@@ -1,4 +1,4 @@
-# PKLL - PKL Python Binding
+# PKLL - PKL Language Python Binding
 Python binding for [Apple's Pkl language](https://pkl-lang.org/index.html).
 
 ### Status
