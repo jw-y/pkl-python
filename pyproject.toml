@@ -38,6 +38,10 @@ dev = [
     "tox",
 ]
 
+[project.urls]
+"Homepage" = "https://github.com/pypa/sampleproject"
+"Bug Reports" = "https://github.com/pypa/sampleproject/issues"
+"Source" = "https://github.com/pypa/sampleproject/"
 
 [tool.twine]
 repository = "pypi"
