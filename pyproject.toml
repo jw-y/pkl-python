@@ -3,8 +3,8 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pypkl"
-version = "0.1.0"
+name = "pkll"
+dynamic = ["version"]
 description = "Python library for Apple's PKL."
 authors = [
     { name = "Jungwoo Yang", email = "jwyang0213@gmail.com" },
@@ -18,7 +18,36 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
+    "msgpack >= 1.0.8"
 ]
+
+[tool.setuptools.package-data]
+"pkll.bin" = ["*"]
+
+[tool.setuptools.dynamic]
+version = {file = "pkll/VERSION"}
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit",
+    "black",
+    "isort",
+    "mypy",
+    "pylint",
+    "pytest",
+    "tox",
+]
+
 
 [tool.twine]
 repository = "pypi"
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+[tool.isort]
+profile = "black"
+
+[tool.pytest.ini_options]
+addopts = "-ra -q"

@@ -1,0 +1,1 @@
+path = read*("customfs:/*.txt")

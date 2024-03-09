@@ -1,0 +1,9 @@
+module MyModule
+
+theModules = import*("../test_fixtures/*.pkl")
+
+
+@Deprecated { message = "Replace with" }
+x0: Int = 1
+
+x1: Int = trace(1)
