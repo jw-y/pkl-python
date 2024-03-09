@@ -7,6 +7,7 @@ import stat
 import subprocess
 from importlib.resources import files
 from typing import List, Optional
+from pathlib import Path
 
 import msgpack
 import requests
@@ -60,9 +61,11 @@ def get_binary_path():
     if bin_file is None:
         raise OSError("No compatible binary found for your system.")
 
-    binary_path = files("pkll.bin").joinpath(bin_file)
+    bin_parent_path = Path("~/.pkl/bin/").expanduser()
+    binary_path = bin_parent_path / bin_file
 
     if not binary_path.exists():
+        binary_path.parent.mkdir(exist_ok=True, parents=True)
         download_binary(bin_file, binary_path)
 
     current_permissions = os.stat(binary_path).st_mode

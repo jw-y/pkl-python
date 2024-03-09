@@ -40,7 +40,7 @@ dev = [
 
 [project.urls]
 "Homepage" = "https://github.com/jw-y/pkll"
-"Bug Reports" = "https://github.com/pypa/sampleproject/issues"
+"Bug Reports" = "https://github.com/jw-y/pkll/issues"
 "Source" = "https://github.com/jw-y/pkll"
 
 [tool.twine]
