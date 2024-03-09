@@ -39,9 +39,9 @@ dev = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/pypa/sampleproject"
+"Homepage" = "https://github.com/jw-y/pkll"
 "Bug Reports" = "https://github.com/pypa/sampleproject/issues"
-"Source" = "https://github.com/pypa/sampleproject/"
+"Source" = "https://github.com/jw-y/pkll"
 
 [tool.twine]
 repository = "pypi"
