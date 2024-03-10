@@ -17,7 +17,7 @@ def main(target, force=False, debug=False, is_print=False):
 
     for f in files:
         if f.is_file():
-            config = pkll.load(str(f), force_render=force, debug=debug)
+            config = pkll.load(f.absolute().as_uri(), force_render=force, debug=debug)
             if is_print:
                 pprint(config)
 

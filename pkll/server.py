@@ -5,9 +5,8 @@ import select
 import signal
 import stat
 import subprocess
-from importlib.resources import files
-from typing import List, Optional
 from pathlib import Path
+from typing import List, Optional
 
 import msgpack
 import requests

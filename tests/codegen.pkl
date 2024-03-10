@@ -1,0 +1,24 @@
+@python.Package { name = "/home/jwyang/dev/pkll/tests/" }
+module any
+
+import ".../codegen/src/python.pkl"
+
+class Person {
+  name: String
+}
+
+res1 = new Listing<Person> {
+  new {
+    name = "Barney"
+  }
+}
+
+res2 = new Person {
+  name = "Bobby"
+}
+
+res3 = new Mapping<String, Person> {
+  ["Wilma"] {
+    name = "Wilma"
+  }
+}

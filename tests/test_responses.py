@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 import pkll
@@ -23,7 +25,7 @@ def test_read_modules():
             )
 
     _ = pkll.load(
-        "file://./tests/myModule.pkl",
+        Path("./tests/myModule.pkl").absolute().as_uri(),
         allowedModules=["pkl:", "repl:", "file:", "customfs:"],
         clientModuleReaders=[
             {
@@ -48,7 +50,7 @@ def test_read_modules_error():
 
     with pytest.raises(Exception):
         _ = pkll.load(
-            "file://./tests/myModule.pkl",
+            Path("./tests/myModule.pkl").absolute().as_uri(),
             allowedModules=["pkl:", "repl:", "file:", "customfs:"],
             clientModuleReaders=[
                 {
@@ -76,7 +78,7 @@ def test_read_resources():
             )
 
     _ = pkll.load(
-        "./tests/with_read.pkl",
+        Path("./tests/with_read.pkl").absolute().as_uri(),
         allowedModules=[
             "pkl:",
             "repl:",

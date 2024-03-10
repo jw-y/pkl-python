@@ -1,0 +1,10 @@
+@python.Package { name = "/home/jwyang/dev/pkll/tests/" }
+module myorg.myteam.AppConfig
+
+import ".../codegen/src/python.pkl"
+
+/// The hostname of this application.
+host: String
+
+/// The port to listen on.
+port: UInt16

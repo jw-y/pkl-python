@@ -18,7 +18,7 @@ Here's how you can start using PKLL to load a PKL module:
 ```python
 import pkll
 
-config = pkll.load("example_module.pkl")
+config = pkll.load("file:///path/to/pkl/example_module.pkl")
 print(config)
 ```
 
@@ -30,7 +30,7 @@ from pkll import load
 
 # Advanced loading with custom environment and properties
 result = load(
-    "advanced_module.pkl",
+    "file:///path/to/pkl/example_module.pkl"
     env={"CUSTOM_ENV": "value"},
     properties={"custom.property": "value"}
 )
