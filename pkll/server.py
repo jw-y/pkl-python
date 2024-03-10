@@ -61,7 +61,7 @@ def get_binary_path():
     if bin_file is None:
         raise OSError("No compatible binary found for your system.")
 
-    bin_parent_path = Path("~/.pkl/bin/").expanduser()
+    bin_parent_path = (Path("~/.pkl/bin/") / PKL_VERSION).expanduser()
     binary_path = bin_parent_path / bin_file
 
     if not binary_path.exists():
