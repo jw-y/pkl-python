@@ -131,7 +131,7 @@ class PKLServer:
         self._process.stdin.write(encoded_message)
         self._process.stdin.flush()
 
-    def receive_message(self, msg_obj) -> Optional[List]:
+    def receive_message(self) -> Optional[List]:
         self.check_process(is_raise=True)
 
         bytes_to_read = 1024
@@ -177,9 +177,14 @@ class PKLServer:
             responses = list(unpacker)
         return responses
 
-    def send_and_receive(self, msg_obj):
+    def send_and_receive(self, msg_obj, max_retry=5) -> List:
         self.send_message(msg_obj)
-        return self.receive_message(msg_obj)
+        response = None
+        retry = 0
+        while response is None and retry < max_retry:
+            response = self.receive_message()
+            retry += 1
+        return response
 
     def terminate(self):
         self._process.terminate()
