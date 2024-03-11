@@ -66,7 +66,7 @@ class Parser:
         self._namedtuple_cache = {
             "__Pair__": namedtuple("Pair", ["first", "second"]),
             "__DataSize__": namedtuple("DataSize", ["value", "unit"]),
-            "__Regex__": namedtuple("Regex", ["string"]),
+            "__Regex__": namedtuple("Regex", ["pattern"]),
         }
         self._force_render = force_render
         self._typed_dynamic_result_type = typed_dynamic_result_type
