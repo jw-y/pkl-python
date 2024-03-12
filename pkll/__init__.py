@@ -11,8 +11,8 @@ with open(os.path.join(os.path.dirname(__file__), "VERSION"), "r") as _f:
 
 
 def load(
-    module_uri: str,
-    module_text: Optional[str] = None,
+    moduleUri: str,
+    moduleText: Optional[str] = None,
     expr: Optional[str] = None,
     *,
     force_render=False,
@@ -109,8 +109,8 @@ def load(
         **kwargs,
     ) as evaluator:
         return evaluator.request(
-            module_uri,
-            module_text,
+            moduleUri,
+            moduleText,
             expr,
             force_render=force_render,
             parser=parser,

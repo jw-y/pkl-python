@@ -123,7 +123,7 @@ class Evaluator:
 
     def request(
         self,
-        module_uri: str,
+        moduleUri: str,
         moduleText=None,
         expr=None,
         force_render=False,
@@ -133,13 +133,10 @@ class Evaluator:
     ):
         parser = parser or Parser(force_render=force_render)
 
-        # module_uri = module_uri.lstrip("file://")
-        # uri = "file://" + os.path.abspath(module_uri)
-        uri = module_uri
         msg_obj = EvaluateRequest(
             requestId=self._server.get_request_id(),
             evaluatorId=self._evaluator_id,
-            moduleUri=uri,
+            moduleUri=moduleUri,
             moduleText=moduleText,
             expr=expr,
         ).to_msg_obj()
