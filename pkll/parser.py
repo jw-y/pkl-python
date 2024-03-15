@@ -112,7 +112,8 @@ class Parser:
         members = {k: v for m in property_list for k, v in m.items()}
         result_type = self._typed_dynamic_result_type
         if result_type == ResultType.NAMEDTUPLE:
-            class_name = full_class_name.split("#")[-1]
+            class_name = full_class_name.split("#")[-1].split(".")[-1]
+
             res = namedtuple(class_name, members.keys())(*members.values())
             return res
         elif result_type == ResultType.DICTIONARY:

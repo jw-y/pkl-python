@@ -103,7 +103,7 @@ class Evaluator:
         self._server.start_process(debug=self._debug)
 
         msg_obj = self._CreateEvaluatorOpts.to_msg_obj()
-        responses = self._server.send_and_receive(msg_obj)
+        responses = self._handle_send_and_receive(msg_obj)
         assert len(responses) == 1
         code, msg_body = responses[0]
 
@@ -120,6 +120,40 @@ class Evaluator:
 
     def terminate(self):
         self._server.terminate()
+
+    def _emit_logs(self, responses):
+        ex_log = []
+
+        for res in responses:
+            is_log = res[0] == CODE_EVALUATE_LOG
+            if is_log:
+                self._handle_log_message(res)
+            else:
+                ex_log.append(res)
+
+        return ex_log
+
+    def _handle_send_and_receive(self, msg_obj) -> List:
+        responses = self._server.send_and_receive(msg_obj)
+        responses = self._emit_logs(responses)
+
+        while len(responses) == 0:
+            responses = self._server.receive_with_retry()
+            responses = self._emit_logs(responses)
+        return responses
+
+    def _handle_log_message(self, response: List):
+        code, msg_body = response
+        response = Log(**msg_body)
+        level_map = {
+            0: "TRACE",
+            1: "WARN",
+        }
+        msg = f"pkl: {level_map[response.level]}: {response.message} ({response.frameUri})"
+        if response.level == 0:
+            print(msg)
+        elif response.level == 1:
+            warnings.warn(msg)
 
     def request(
         self,
@@ -141,7 +175,7 @@ class Evaluator:
             expr=expr,
         ).to_msg_obj()
 
-        all_responses = self._server.send_and_receive(msg_obj)
+        all_responses = self._handle_send_and_receive(msg_obj)
 
         queue = deque()
         queue.extend(all_responses)
@@ -158,17 +192,6 @@ class Evaluator:
                 result = msgpack.unpackb(raw, strict_map_key=False)
                 parsed = parser.parse(result)
                 results.append(parsed)
-            elif code == CODE_EVALUATE_LOG:
-                response = Log(**msg_body)
-                level_map = {
-                    0: "TRACE",
-                    1: "WARN",
-                }
-                msg = f"pkl: {level_map[response.level]}: {response.message} ({response.frameUri})"
-                if response.level == 0:
-                    print(msg)
-                elif response.level == 1:
-                    warnings.warn(msg)
             elif code == CODE_LIST_MODULES_REQUEST:
                 request = EvaluatorListModulesRequest(**msg_body)
                 if module_handler is None:
@@ -180,7 +203,7 @@ class Evaluator:
                     pathElements=res.pathElements,
                     error=res.error,
                 ).to_msg_obj()
-                all_responses = self._server.send_and_receive(msg_obj)
+                all_responses = self._handle_send_and_receive(msg_obj)
                 queue.extend(all_responses)
             elif code == CODE_LIST_RESOURCES_REQUEST:
                 request = EvaluatorListResourcesRequest(**msg_body)
@@ -193,7 +216,7 @@ class Evaluator:
                     pathElements=res.pathElements,
                     error=res.error,
                 ).to_msg_obj()
-                all_responses = self._server.send_and_receive(msg_obj)
+                all_responses = self._handle_send_and_receive(msg_obj)
                 queue.extend(all_responses)
             elif code == CODE_EVALUATE_READ_MODULE:
                 request = EvaluatorReadModuleRequest(**msg_body)
@@ -206,7 +229,7 @@ class Evaluator:
                     contents=res.contents,
                     error=res.error,
                 ).to_msg_obj()
-                all_responses = self._server.send_and_receive(msg_obj)
+                all_responses = self._handle_send_and_receive(msg_obj)
                 queue.extend(all_responses)
             elif code == CODE_EVALUATE_READ:
                 request = EvaluatorReadResourceRequest(**msg_body)
@@ -219,7 +242,7 @@ class Evaluator:
                     contents=res.contents,
                     error=res.error,
                 ).to_msg_obj()
-                all_responses = self._server.send_and_receive(msg_obj)
+                all_responses = self._handle_send_and_receive(msg_obj)
                 queue.extend(all_responses)
             else:
                 raise NotImplementedError(f"code: {hex(code)}")
