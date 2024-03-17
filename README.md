@@ -3,7 +3,13 @@ Python binding for [Apple's Pkl language](https://pkl-lang.org/index.html).
 
 ### Status
 * Evaluator API: fully functional
-* Code Generation: not implemented, yet
+* Code Generation: in development
+
+### TODO
+* [ ] (evaluator) change default to dataclasses
+* [ ] (codgen) binary installation feature
+* [ ] (codgen) fix class order
+* [ ] (codgen) clean up code
 
 ## Installation
 

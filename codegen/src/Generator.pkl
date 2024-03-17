@@ -1,0 +1,112 @@
+// ===----------------------------------------------------------------------===//
+// Copyright © 2024 Apple Inc. and the Pkl project authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ===----------------------------------------------------------------------===//
+/// Generates Python sources from Pkl
+@python.Module { name = "pkl_gen_python" }
+@ModuleInfo { minPklVersion = "0.24.0" }
+module pkl.python.Generator
+
+import "pkl:reflect"
+import "internal/gatherer.pkl"
+import "internal/PythonMapping.pkl"
+import "internal/PythonNamespace.pkl"
+import "internal/utils.pkl"
+import "python.pkl"
+
+/// The module that should be generated.
+moduleToGenerate: Module
+
+/// The indentation applied to rendered Python code.
+indent: String = "    "
+
+typealias EnumMember = reflect.DeclaredType|reflect.StringLiteralType|reflect.NullableType|reflect.NothingType
+
+function hasDistinctEnumNames(members: List<reflect.StringLiteralType>) =
+  let (names = members.map((it) -> utils.normalizeEnumName(it.value)))
+    names.isDistinct
+
+// noinspection TypeMismatch
+function isEnumLike(decl: reflect.TypeDeclaration) =
+  decl is reflect.TypeAlias
+    &&
+    let (referent = decl.referent)
+      referent is reflect.UnionType
+      && referent.members.every((t) -> t is EnumMember)
+      &&
+        if (referent.members is List<reflect.StringLiteralType>)
+          hasDistinctEnumNames(referent.members)
+        else true
+
+// noinspection UnresolvedElement
+function getPythonModuleName(decl: reflect.TypeDeclaration): String? =
+  decl.enclosingDeclaration
+    .annotations
+    .findOrNull((it) -> it.getClass().toString() == "pkl.python.python#Module")
+    ?.name
+
+function gatherEnums(decl: List<reflect.TypeDeclaration>): List<PythonMapping> =
+  decl
+    .filter((it) -> isEnumLike(it))
+    .fold(List(), (acc, it) -> acc.add(new PythonMapping.Enum {
+      pythonModuleName = getPythonModuleName(it)
+      source = it
+      seenMappings = acc
+    }))
+
+function gatherTypeAliases(decl: List<reflect.TypeDeclaration>): Mixin<List<PythonMapping>> =
+  (acc) ->
+    decl
+      //.filter((it) -> it is reflect.TypeAlias && !isEnumLike(it))
+      .filter((it) -> it is reflect.TypeAlias)
+      .fold(acc, (accum, it) -> accum.add(new PythonMapping.TypeAlias {
+        pythonModuleName = getPythonModuleName(it)
+        source = it
+        seenMappings = accum
+      }))
+
+function gatherClasses(decl: List<reflect.TypeDeclaration>): Mixin<List<PythonMapping>> =
+  (acc) ->
+    decl
+      .filter((it) -> it is reflect.Class)
+      .fold(acc, (accum, it) -> accum.add(new PythonMapping.Class {
+        pythonModuleName = getPythonModuleName(it)
+        source = it
+        seenMappings = accum
+      }))
+
+local allMappings: List<PythonMapping> =
+  let (clazz = reflect.Module(moduleToGenerate).moduleClass)
+  let (declarations = gatherer.gatherTypeDeclarations(clazz, List()))
+    //gatherEnums(declarations) |> gatherClasses(declarations) |> gatherTypeAliases(declarations)
+    List() |> gatherClasses(declarations) |> gatherTypeAliases(declarations)
+
+local packages = allMappings
+  .groupBy((it) -> it.namespaceName)
+  .mapValues((namespace: String, _mappings: List<PythonMapping>) -> new PythonNamespace {
+    namespaceName = namespace
+    `module` = _mappings.first.source.enclosingDeclaration
+    mappings = allMappings
+    moduleMappings = _mappings
+    indent = module.indent
+  })
+
+output {
+  files {
+    for (_, package in packages) {
+      ...package.output.files!!
+    }
+  }
+  text = throw("Generator.pkl only produces multiple-file output. Try running again with the -m flag.")
+}

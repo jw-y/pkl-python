@@ -1,0 +1,166 @@
+// ===----------------------------------------------------------------------===//
+// Copyright © 2024 Apple Inc. and the Pkl project authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ===----------------------------------------------------------------------===//
+/// Utilities for generating Python types from Pkl.
+@Unlisted
+module pkl.python.internal.typegen
+
+import "pkl:reflect"
+import "Type.pkl"
+import "PythonMapping.pkl"
+
+function generateType(
+  type: reflect.Type,
+  enclosing: reflect.TypeDeclaration,
+  seenMappings: List<PythonMapping>
+): Type =
+  if (type is reflect.DeclaredType)
+    generateDeclaredType(type, enclosing, seenMappings)
+  else if (type is reflect.ModuleType)
+    let (moduleClass = enclosing.enclosingDeclaration.moduleClass)
+      generateType(reflect.DeclaredType(moduleClass), moduleClass, seenMappings)
+  else if (type is reflect.UnionType) generateUnionType(type, enclosing, seenMappings)
+  else if (type is reflect.NullableType)
+    let (_elem = generateType(type.member, enclosing, seenMappings))
+      // No doubly-nullable type
+      if (_elem is Type.Nullable) _elem
+      else new Type.Nullable { elem = _elem }
+  else if (type is reflect.UnknownType) anyType
+  else if (type is reflect.NothingType) neverType
+  else if (type is reflect.StringLiteralType)
+    new Type.StringLiteral { values = List(type.value) }
+  else throw("Unsure how to generate this type: \(type)")
+
+function generateUnionType(
+  type: reflect.UnionType,
+  enclosing: reflect.TypeDeclaration,
+  seenMappings: List<PythonMapping>
+): Type =
+  let (mappedType = seenMappings.findOrNull((c) -> c.source == type))
+    if (mappedType != null)
+      mappedType.type
+    //else if (type.members.every((it) -> it is reflect.StringLiteralType || it == reflect.stringType))
+    else if (type.members.every((it) -> it is reflect.StringLiteralType))
+      new Type.StringLiteral { values = type.members.map((it) -> it.value) }
+    else if (type.members.any((it) -> it is reflect.StringLiteralType))
+      let ( partitioned = type.members.partition((it) -> it is reflect.StringLiteralType) )
+      let ( exLiteral = partitioned.second.map((it) -> generateType(it, enclosing, seenMappings)) )
+      let ( literalMember = new Type.StringLiteral { values = partitioned.first.map((it) -> it.value) } )
+      new Type.Union { members = exLiteral.add(literalMember) }
+    else
+      //anyType
+      new Type.Union { members = type.members.map((it) -> generateType(it, enclosing, seenMappings)) }
+
+function generateDeclaredType(
+  type: reflect.DeclaredType,
+  enclosing: reflect.TypeDeclaration,
+  seenMappings: List<PythonMapping>
+): Type =
+  let (referent = type.referent)
+  let (reflectee = type.referent.reflectee)
+  let (mapped = seenMappings.findOrNull((it) -> it.source == referent))
+    mapped?.type ??
+      mappedTypes.getOrNull(reflectee) ??
+        mappedHigherOrderTypes.getOrNull(reflectee)?.apply(type, enclosing, seenMappings) ??
+          if (referent is reflect.TypeAlias)
+            generateType(referent.referent, enclosing, seenMappings)
+          else throw("Cannot generate type \(type.referent.name) as Python.")
+
+local function builtInType(typ: String): Type.Declared = new { typeName = typ }
+
+anyType: Type.Nullable = new { elem = builtInType("AnyHashable") }
+
+local neverType: Type.Declared = builtInType("Never")
+
+mappedTypes: Mapping<Class|TypeAlias, Type> = new {
+  [Int] = new Type.Declared { typeName = "int" }
+  [Int8] = new Type.Declared { typeName = "int" }
+  [Int16] = new Type.Declared { typeName = "int" }
+  [Int32] = new Type.Declared { typeName = "int" }
+  [UInt] = new Type.Declared { typeName = "int" }
+  [UInt8] = new Type.Declared { typeName = "int" }
+  [UInt16] = new Type.Declared { typeName = "int" }
+  [UInt32] = new Type.Declared { typeName = "int" }
+  [Number] = new Type.Declared { typeName = "float" }
+  [Float] = new Type.Declared { typeName = "float" }
+  [String] = new Type.Declared { typeName = "str" }
+  [Boolean] = new Type.Declared { typeName = "bool" }
+  [Null] = new Type.Declared { typeName = "None"; typeArguments = List(neverType) }
+  [Any] = anyType
+  [Char] = new Type.Declared { typeName = "char" }
+  [Duration] = new Type.Declared {
+    pythonModuleName = "PklPython"
+    typeName = "Duration"
+  }
+  [DurationUnit] = new Type.Declared {
+    pythonModuleName = "PklPython"
+    typeName = "DurationUnit"
+  }
+  [Dynamic] = new Type.Declared {
+    pythonModuleName = "PklPython"
+    typeName = "Object"
+  }
+  [DataSize] = new Type.Declared {
+    pythonModuleName = "PklPython"
+    typeName = "DataSize"
+  }
+  [DataSizeUnit] = new Type.Declared {
+    pythonModuleName = "PklPython"
+    typeName = "DataSizeUnit"
+  }
+}
+
+mappedHigherOrderTypes: Mapping<Class|TypeAlias, (reflect.DeclaredType, reflect.TypeDeclaration, List<PythonMapping>) -> Type> = new {
+  [List] = this[Listing]
+  [Listing] = (type, enclosing, seenMappings) ->
+      let (typeArg = type.typeArguments.getOrNull(0))
+        new Type.Array {
+          elem =
+            if (typeArg == null) anyType
+            else generateType(typeArg, enclosing, seenMappings)
+        }
+  [Map] = this[Mapping]
+  [Mapping] = (type, enclosing, seenMappings) -> new Type.Dictionary {
+    local typeArgKey = type.typeArguments.getOrNull(0)
+    key =
+      if (typeArgKey == null) anyType
+      else generateType(typeArgKey, enclosing, seenMappings)
+
+    local typeArgValue = type.typeArguments.getOrNull(1)
+    elem =
+      if (typeArgValue == null) anyType
+      else generateType(typeArgValue, enclosing, seenMappings)
+  }
+  [Set] = (type, enclosing, seenMappings) -> new Type.Declared {
+        local typeArg = type.typeArguments.getOrNull(0)
+        typeName = "Set"
+        typeArguments = List(
+          if (typeArg == null)
+            anyType
+          else
+            generateType(typeArg, enclosing, seenMappings)
+        )
+      }
+  [Pair] = (type, enclosing, seenMappings) -> new Type.Declared {
+    typeName = "Pair"
+    pythonModuleName = "Pkl"
+    local typeArgKey = type.typeArguments.getOrNull(0)
+    local typeArgValue = type.typeArguments.getOrNull(1)
+    typeArguments = List(
+      if (typeArgKey == null) anyType else generateType(typeArgKey, enclosing, seenMappings),
+      if (typeArgValue == null) anyType else generateType(typeArgValue, enclosing, seenMappings)
+    )
+  }
+}

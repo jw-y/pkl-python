@@ -1,0 +1,27 @@
+amends "pkl:Project"
+
+local github_base = "github.com/jw-y/pkll"
+
+package {
+  name = "pkl.python"
+  baseUri = "package://\(github_base)/\(name)"
+  packageZipUrl = "https://\(github_base)/releases/download/\(name)@\(version)/\(name)@\(version).zip"
+  version = read("../../VERSION.txt").text
+  authors {
+    "Jungwoo Yang <jwyang0213@gmail.com>"
+  }
+  sourceCodeUrlScheme = "https://\(github_base)/blob/\(version)/codegen/src%{path}#L%{line}-L%{endLine}"
+  sourceCode = "https://\(github_base)"
+  description = "Pkl bindings for the Python programming language"
+  license = "Apache-2.0"
+  exclude {
+    "tests"
+    "tests/**"
+  }
+}
+
+tests {
+  for (key, _ in import*("tests/*.pkl")) {
+    key
+  }
+}
