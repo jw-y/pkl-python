@@ -7,7 +7,7 @@ import stat
 import subprocess
 import warnings
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import msgpack
 import requests
@@ -132,7 +132,7 @@ class PKLServer:
         self._process.stdin.write(encoded_message)
         self._process.stdin.flush()
 
-    def receive_message(self, timeout=0.1) -> Optional[List]:
+    def receive_message(self, timeout=0.1) -> List:
         self.check_process(is_raise=True)
 
         bytes_to_read = 1024
@@ -170,7 +170,7 @@ class PKLServer:
         if outputs["stderr"]:
             print(b"".join(outputs["stderr"]).decode())
 
-        responses = None
+        responses = []
         if outputs["stdout"]:
             outs = b"".join(outputs["stdout"])
             unpacker = msgpack.Unpacker()

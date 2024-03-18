@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, is_dataclass
 from typing import Dict, List, Optional, Union
 
 from pkll.msgapi.code import (
@@ -18,9 +18,25 @@ class OutgoingMessage:
         raise NotImplementedError("Subclasses must implement this method.")
 
 
+def dataclass_to_dict(dc):
+    if not is_dataclass(dc):
+        return dc
+
+    dd = {k: dataclass_to_dict(v) for k, v in asdict(dc).items()}
+    return dd
+
+
+def _filter_dict(dd):
+    if not isinstance(dd, dict):
+        return dd
+    return {k: _filter_dict(v) for k, v in dd.items() if v is not None}
+
+
 def format_message(msg: OutgoingMessage, code: int):
-    msg_dict = asdict(msg)
-    filtered_dict = {k: v for k, v in msg_dict.items() if v is not None}
+    # msg_dict = asdict(msg)
+    # filtered_dict = {k: v for k, v in msg_dict.items() if v is not None}
+    msg_dict = dataclass_to_dict(msg)
+    filtered_dict = _filter_dict(msg_dict)
     msg_obj = [code, filtered_dict]
     return msg_obj
 
@@ -77,17 +93,19 @@ class ClientModuleReader:
 
 @dataclass
 class RemoteDependency:
-    type: str
-    packageUri: Optional[str]
-    checksums: Optional[Checksums]
+    type: str = "remote"
+    packageUri: Optional[str] = None
+    checksums: Optional[Checksums] = None
 
 
 @dataclass
 class Project:
-    type: str
-    packageUri: Optional[str]
     projectFileUri: str
-    dependencies: Dict[str, Union["Project", RemoteDependency]]
+    packageUri: Optional[str] = None
+    type: str = "local"
+    dependencies: Dict[str, Union["Project", RemoteDependency]] = field(
+        default_factory=dict
+    )
 
 
 @dataclass

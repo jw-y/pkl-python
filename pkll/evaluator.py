@@ -133,13 +133,15 @@ class Evaluator:
 
         return ex_log
 
-    def _handle_send_and_receive(self, msg_obj) -> List:
+    def _handle_send_and_receive(self, msg_obj, max_retry=5) -> List:
         responses = self._server.send_and_receive(msg_obj)
         responses = self._emit_logs(responses)
 
-        while len(responses) == 0:
-            responses = self._server.receive_with_retry()
+        count = 0
+        while len(responses) == 0 and count < max_retry:
+            responses = self._server.receive_with_retry(max_retry=1)
             responses = self._emit_logs(responses)
+            count += 1
         return responses
 
     def _handle_log_message(self, response: List):
