@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from urllib.parse import urlparse
 
 from pkll.evaluator import EVALUATOR_DEFAULT, Evaluator
@@ -17,8 +17,48 @@ with open(os.path.join(os.path.dirname(__file__), "VERSION"), "r") as _f:
     __version__ = _f.read().strip()
 
 
+def _get_project(project_conf):
+    name = project_conf.__class__.__name__
+
+    if name == "Project":
+        return Project(
+            projectFileUri=project_conf.projectFileUri,
+            packageUri=project_conf.package.uri
+            if project_conf.package is not None
+            else None,
+            dependencies={
+                k: _get_project(v) for k, v in project_conf.dependencies.items()
+            },
+        )
+    elif name == "RemoteDependency":
+        return RemoteDependency(packageUri=project_conf.packageUri)
+    else:
+        raise ValueError(f"Unknown dependency: '{name}'")
+
+
+def _search_project_dir(module_path: Path, debug=False) -> Project:
+    cur_path = module_path
+    while not (cur_path / "PklProject").exists():
+        cur_path = cur_path.parent
+        if str(cur_path) == "/":
+            break
+
+    if str(cur_path) == "/":
+        cur_path = module_path
+
+    cur_path = cur_path / "PklProject"
+    if cur_path.exists():
+        config = load(cur_path.as_uri(), project=None, debug=debug)
+        project = _get_project(config)
+    else:
+        project = Project(projectFileUri=cur_path.as_uri())
+
+    # project = Project(packageUri=cur_path.as_uri(), projectFileUri=cur_path.as_uri())
+    return project
+
+
 def load(
-    moduleUri: str,
+    moduleUri: Union[str, Path],
     moduleText: Optional[str] = None,
     expr: Optional[str] = None,
     *,
@@ -99,48 +139,17 @@ def load(
     with a variety of customization options, including custom module and resource readers,
     environmental configurations, and support for complex project dependencies.
     """
+    parsed = urlparse(str(moduleUri))
+    default_scheme = "file"
 
-    def _get_project(project_conf):
-        name = project_conf.__class__.__name__
-
-        if name == "Project":
-            return Project(
-                projectFileUri=project_conf.projectFileUri,
-                packageUri=project_conf.package.uri
-                if project_conf.package is not None
-                else None,
-                dependencies={
-                    k: _get_project(v) for k, v in project_conf.dependencies.items()
-                },
-            )
-        elif name == "RemoteDependency":
-            return RemoteDependency(packageUri=project_conf.packageUri)
-        else:
-            raise ValueError(f"Unknown dependency: '{name}'")
-
-    def _search_project_dir(module_path: Path) -> Project:
-        cur_path = module_path
-        while not (cur_path / "PklProject").exists():
-            cur_path = cur_path.parent
-            if str(cur_path) == "/":
-                break
-
-        if str(cur_path) == "/":
-            cur_path = module_path
-
-        cur_path = cur_path / "PklProject"
-        if cur_path.exists():
-            config = load(cur_path.as_uri(), project=None, debug=debug)
-            project = _get_project(config)
-        else:
-            project = Project(projectFileUri=cur_path.as_uri())
-
-        # project = Project(packageUri=cur_path.as_uri(), projectFileUri=cur_path.as_uri())
-        return project
+    parsed = parsed._replace(
+        scheme=parsed.scheme or default_scheme,
+        path="" if parsed.path == "" else str(Path(parsed.path).absolute()),
+    )
+    moduleUri = parsed.geturl()
 
     if project is EVALUATOR_DEFAULT:
-        parsed = urlparse(moduleUri)
-        project = _search_project_dir(Path(parsed.path).parent)
+        project = _search_project_dir(Path(parsed.path).parent, debug=debug)
 
     with Evaluator(
         allowedModules=allowedModules,

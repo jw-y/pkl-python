@@ -1,6 +1,8 @@
 from collections import namedtuple
+from dataclasses import dataclass, make_dataclass
 from datetime import timedelta
 from enum import Enum, auto
+from typing import Any, Literal
 
 
 class ResultType(Enum):
@@ -11,6 +13,8 @@ class ResultType(Enum):
     TUPLE = auto()
     CLASS = auto()
     DICTIONARY = auto()
+    RANGE = auto()
+    DATACLASS = auto()
     NAMEDTUPLE = auto()
     TIMEDELTA = auto()
     PANDAS_TIMEDELTA = auto()
@@ -34,16 +38,63 @@ CODE_ENTRY = 0x11
 CODE_ELEMENT = 0x12
 
 
+@dataclass
+class Pair:
+    first: Any
+    second: Any
+
+
+@dataclass
+class Duration:
+    value: float
+    unit: Literal["ns", "us", "ms", "s", "min", "h", "d"]
+    _UNIT_MAP = {
+        "ns": "nanoseconds",
+        "us": "microseconds",
+        "ms": "milliseconds",
+        "s": "seconds",
+        "min": "minutes",
+        "h": "hours",
+        "d": "days",
+    }
+
+    def to_timedelta(self):
+        return timedelta(**{self._UNIT_MAP[self.unit]: self.value})
+
+    def to_pandas_timedelta(self):
+        import pandas as pd
+
+        return pd.Timedelta(self.value, self._UNIT_MAP[self.unit])
+
+
+@dataclass
+class DataSize:
+    value: float
+    unit: Literal["b", "kb", "kib", "mb", "mib", "gb", "gib", "tb", "tib", "pb", "pib"]
+
+
+@dataclass
+class Regex:
+    pattern: str
+
+
+@dataclass
+class IntSeq:
+    start: int
+    end: int
+    step: int
+
+
 class Parser:
     def __init__(
         self,
         force_render=False,
         *,
-        typed_dynamic_result_type=ResultType.NAMEDTUPLE,
-        pair_result_type=ResultType.NAMEDTUPLE,
-        duration_result_type=ResultType.TIMEDELTA,
-        datasize_result_type=ResultType.NAMEDTUPLE,
-        regex_result_type=ResultType.NAMEDTUPLE,
+        typed_dynamic_result_type=ResultType.DATACLASS,
+        pair_result_type=ResultType.DATACLASS,
+        datasize_result_type=ResultType.DATACLASS,
+        regex_result_type=ResultType.DATACLASS,
+        intseq_result_type=ResultType.DATACLASS,
     ):
         self.type_handlers = {
             CODE_TYPED_DYNAMIC: self.parse_typed_dynamic,
@@ -63,6 +114,7 @@ class Parser:
             CODE_ENTRY: self.parse_entry,
             CODE_ELEMENT: self.parse_element,
         }
+        self._dataclass_cache = {}
         self._namedtuple_cache = {
             "__Pair__": namedtuple("Pair", ["first", "second"]),
             "__DataSize__": namedtuple("DataSize", ["value", "unit"]),
@@ -71,9 +123,9 @@ class Parser:
         self._force_render = force_render
         self._typed_dynamic_result_type = typed_dynamic_result_type
         self._pair_result_type = pair_result_type
-        self._duration_result_type = duration_result_type
         self._datasize_result_type = datasize_result_type
         self._regex_result_type = regex_result_type
+        self._intseq_result_type = intseq_result_type
 
     def parse(self, obj):
         return self.handle_type(obj)
@@ -111,9 +163,11 @@ class Parser:
         # only properties and entries
         members = {k: v for m in property_list for k, v in m.items()}
         result_type = self._typed_dynamic_result_type
-        if result_type == ResultType.NAMEDTUPLE:
-            class_name = full_class_name.split("#")[-1].split(".")[-1]
-
+        class_name = full_class_name.split("#")[-1].split(".")[-1]
+        if result_type == ResultType.DATACLASS:
+            res = make_dataclass(class_name, members.keys())(*members.values())
+            return res
+        elif result_type == ResultType.NAMEDTUPLE:
             res = namedtuple(class_name, members.keys())(*members.values())
             return res
         elif result_type == ResultType.DICTIONARY:
@@ -139,35 +193,13 @@ class Parser:
 
     def parse_duration(self, obj):
         _, value, unit = obj
-        unit_map = {
-            "ns": "nanoseconds",
-            "us": "microseconds",
-            "ms": "milliseconds",
-            "s": "seconds",
-            "min": "minutes",
-            "h": "hours",
-            "d": "days",
-        }
-        result_type = self._duration_result_type
-        if result_type == ResultType.TIMEDELTA and unit == "ns":
-            if not self._force_render:
-                raise ValueError(
-                    "Unit 'ns' not supported for 'datetime.timedelta'\n"
-                    "\tTry using 'PANDAS_TIMEDELTA' or 'force_render'"
-                )
-            result_type = ResultType.PANDAS_TIMEDELTA
 
-        if result_type == ResultType.TIMEDELTA:
-            return timedelta(**{unit_map[unit]: value})
-        elif result_type == ResultType.PANDAS_TIMEDELTA:
-            from pandas import Timedelta
-
-            return Timedelta(**{unit_map[unit]: value})
-        else:
-            raise ValueError(f"ResultType '{self._pair_result_type}' not supported")
+        return Duration(value, unit)
 
     def parse_pair(self, obj):
-        if self._pair_result_type == ResultType.NAMEDTUPLE:
+        if self._pair_result_type == ResultType.DATACLASS:
+            return Pair(obj[1], obj[2])
+        elif self._pair_result_type == ResultType.NAMEDTUPLE:
             return self._namedtuple_cache["__Pair__"](obj[1], obj[2])
         elif self._pair_result_type == ResultType.LIST:
             return [obj[1], obj[2]]
@@ -177,7 +209,9 @@ class Parser:
             raise ValueError(f"ResultType '{self._pair_result_type}' not supported")
 
     def parse_datasize(self, obj):
-        if self._datasize_result_type == ResultType.NAMEDTUPLE:
+        if self._datasize_result_type == ResultType.DATACLASS:
+            return DataSize(obj[1], obj[2])
+        elif self._datasize_result_type == ResultType.NAMEDTUPLE:
             return self._namedtuple_cache["__DataSize__"](obj[1], obj[2])
         elif self._datasize_result_type == ResultType.TUPLE:
             return (obj[1], obj[2])
@@ -185,10 +219,17 @@ class Parser:
             raise ValueError(f"ResultType '{self._datasize_result_type}' not supported")
 
     def parse_intseq(self, obj):
-        return range(obj[1], obj[2], obj[2])
+        if self._intseq_result_type == ResultType.DATACLASS:
+            return IntSeq(obj[1], obj[2], obj[3])
+        elif self._intseq_result_type == ResultType.RANGE:
+            return range(obj[1], obj[2], obj[3])
+        else:
+            raise ValueError(f"ResultType '{self._intseq_result_type}' not supported")
 
     def parse_regex(self, obj):
-        if self._datasize_result_type == ResultType.NAMEDTUPLE:
+        if self._datasize_result_type == ResultType.DATACLASS:
+            return Regex(obj[1])
+        elif self._datasize_result_type == ResultType.NAMEDTUPLE:
             return self._namedtuple_cache["__Regex__"](obj[1])
         else:
             raise ValueError(f"ResultType '{self._datasize_result_type}' not supported")

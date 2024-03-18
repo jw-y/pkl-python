@@ -6,10 +6,10 @@ Python binding for [Apple's Pkl language](https://pkl-lang.org/index.html).
 * Code Generation: in development
 
 ### TODO
-* [ ] (evaluator) change default to dataclasses
 * [ ] (codgen) binary installation feature
 * [ ] (codgen) fix class order
 * [ ] (codgen) clean up code
+* [x] (evaluator) change default to dataclasses
 
 ## Installation
 
@@ -24,7 +24,7 @@ Here's how you can start using PKLL to load a PKL module:
 ```python
 import pkll
 
-config = pkll.load("file:///path/to/pkl/example_module.pkl")
+config = pkll.load("path/to/pkl/example_module.pkl")
 print(config)
 ```
 
@@ -36,7 +36,7 @@ from pkll import load
 
 # Advanced loading with custom environment and properties
 result = load(
-    "file:///path/to/pkl/example_module.pkl"
+    "path/to/pkl/example_module.pkl"
     env={"CUSTOM_ENV": "value"},
     properties={"custom.property": "value"}
 )

@@ -1,3 +1,17 @@
 
+dynamic = new Dynamic {}
+
+map = Map()
+
+mapping : Mapping = new  {}
+
+list = List()
+listing : Listing = new {}
+set = Set()
+
+duration: Duration = 10.ms
+datasize: DataSize = 16.b
+pair = Pair(1, "A")
+
 x = IntSeq(0, 10)
 y = Regex("[a-z]{1,5}")
