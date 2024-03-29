@@ -6,33 +6,29 @@ from typing import Dict, List, Optional
 import msgpack
 
 from pkll.handler import ModuleHandler, ResourcesHandler
-from pkll.msgapi.code import (
+from pkll.msgapi import (
     CODE_EVALUATE_LOG,
     CODE_EVALUATE_READ,
     CODE_EVALUATE_READ_MODULE,
     CODE_EVALUATE_RESPONSE,
     CODE_LIST_MODULES_REQUEST,
     CODE_LIST_RESOURCES_REQUEST,
-)
-from pkll.msgapi.incoming import (
-    CreateEvaluatorResponse,
-    EvaluateResponse,
-    EvaluatorListModulesRequest,
-    EvaluatorListResourcesRequest,
-    EvaluatorReadModuleRequest,
-    EvaluatorReadResourceRequest,
-    Log,
-)
-from pkll.msgapi.outgoing import (
     ClientModuleReader,
     ClientResourceReader,
     CloseEvaluator,
     CreateEvaluator,
+    CreateEvaluatorResponse,
     EvaluateRequest,
+    EvaluateResponse,
+    EvaluatorListModulesRequest,
     EvaluatorListModulesResponse,
+    EvaluatorListResourcesRequest,
     EvaluatorListResourcesResponse,
+    EvaluatorReadModuleRequest,
     EvaluatorReadModuleResponse,
+    EvaluatorReadResourceRequest,
     EvaluatorReadResourceResponse,
+    Log,
     Project,
 )
 from pkll.parser import Parser
@@ -116,7 +112,9 @@ class Evaluator:
             raise ValueError("Evaluator not created")
 
         msg_obj = CloseEvaluator(self._evaluator_id).to_msg_obj()
-        _ = self._server.send_and_receive(msg_obj)
+        _ = self._server.send_message(msg_obj)
+        if self._debug:
+            self._server.receive_message(timeout=0.1, empty_break=True)
 
     def terminate(self):
         self._server.terminate()
@@ -133,15 +131,13 @@ class Evaluator:
 
         return ex_log
 
-    def _handle_send_and_receive(self, msg_obj, max_retry=5) -> List:
+    def _handle_send_and_receive(self, msg_obj) -> List:
         responses = self._server.send_and_receive(msg_obj)
         responses = self._emit_logs(responses)
 
-        count = 0
-        while len(responses) == 0 and count < max_retry:
-            responses = self._server.receive_with_retry(max_retry=1)
+        while len(responses) == 0:
+            responses = self._server.receive_message()
             responses = self._emit_logs(responses)
-            count += 1
         return responses
 
     def _handle_log_message(self, response: List):

@@ -1,8 +1,14 @@
+import sys
+import types
 from collections import namedtuple
 from dataclasses import dataclass, make_dataclass
 from datetime import timedelta
 from enum import Enum, auto
-from typing import Any, Literal
+from typing import Any, List, Literal
+
+# create module for lookup
+_lookup_module = types.ModuleType(__name__ + "._lookup")
+sys.modules[_lookup_module.__name__] = _lookup_module
 
 
 class ResultType(Enum):
@@ -144,6 +150,15 @@ class Parser:
             return type(obj)(self.handle_type(v) for v in obj)
         return obj
 
+    def get_dataclass_class(self, class_name: str, keys: List[str]):
+        if class_name not in self._dataclass_cache:
+            dynamic_class = make_dataclass(class_name, keys)
+            dynamic_class.__module__ = _lookup_module.__name__
+            setattr(_lookup_module, class_name, dynamic_class)
+            self._dataclass_cache[class_name] = dynamic_class
+        dynamic_class = self._dataclass_cache[class_name]
+        return dynamic_class
+
     def parse_typed_dynamic(self, obj):
         _, full_class_name, module_uri, members = obj
 
@@ -165,7 +180,8 @@ class Parser:
         result_type = self._typed_dynamic_result_type
         class_name = full_class_name.split("#")[-1].split(".")[-1]
         if result_type == ResultType.DATACLASS:
-            res = make_dataclass(class_name, members.keys())(*members.values())
+            dynamic_class = self.get_dataclass_class(class_name, members.keys())
+            res = dynamic_class(*members.values())
             return res
         elif result_type == ResultType.NAMEDTUPLE:
             res = namedtuple(class_name, members.keys())(*members.values())

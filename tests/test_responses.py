@@ -9,7 +9,7 @@ from pkll.handler import (
     ReadResourceResponse,
     ResourcesHandler,
 )
-from pkll.msgapi.outgoing import ClientResourceReader
+from pkll.msgapi import ClientResourceReader
 
 
 def test_read_modules():

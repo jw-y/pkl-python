@@ -116,6 +116,10 @@ class PKLServer:
             preexec_fn=preexec_function,
             env=env,
         )
+        stdout_fd = self._process.stdout.fileno()
+        stderr_fd = self._process.stderr.fileno()
+        os.set_blocking(stdout_fd, False)
+        os.set_blocking(stderr_fd, False)
         _PROCESSES.append(self._process)
 
     def check_process(self, is_raise=False):
@@ -132,50 +136,38 @@ class PKLServer:
         self._process.stdin.write(encoded_message)
         self._process.stdin.flush()
 
-    def receive_message(self, timeout=0.1) -> List:
+    def receive_message(self, timeout=None, empty_break=False) -> List:
         self.check_process(is_raise=True)
 
-        bytes_to_read = 1024
-        outputs = {"stdout": [], "stderr": []}
         stdout = self._process.stdout
         stderr = self._process.stderr
+        outputs = []
 
-        # Monitor both stdout and stderr for input
-        inputs = [stdout, stderr]
-        while inputs:
-            readable, _, _ = select.select(inputs, [], [], timeout)
+        while True:
+            readable, _, _ = select.select([stdout, stderr], [], [], timeout)
+            if empty_break and len(readable) == 0:
+                return
 
-            for fd in readable:
-                if fd is stdout:
-                    out = stdout.read(bytes_to_read)
-                    # out = stdout.read()
-                    if out:
-                        outputs["stdout"].append(out)
-                    else:
-                        inputs.remove(
-                            stdout
-                        )  # Remove stdout from inputs if no more data
-                elif fd is stderr:
-                    err = stderr.read(bytes_to_read)
-                    if err:
-                        outputs["stderr"].append(err)
-                    else:
-                        inputs.remove(
-                            stderr
-                        )  # Remove stderr from inputs if no more data
+            for stream in readable:
+                output = stream.read()
 
-            if not readable:
-                break  # Exit loop if neither stdout nor stderr had data
+                if stream == stdout:
+                    outputs.append(output)
+                else:  # stderr
+                    print(output.decode(), end="")
 
-        if outputs["stderr"]:
-            print(b"".join(outputs["stderr"]).decode())
+            if len(outputs) > 0:
+                break
 
-        responses = []
-        if outputs["stdout"]:
-            outs = b"".join(outputs["stdout"])
-            unpacker = msgpack.Unpacker()
-            unpacker.feed(outs)
-            responses = list(unpacker)
+            # Check if the process has terminated
+            if self._process.poll() is not None:
+                print("Process has terminated")
+                break
+
+        assert len(outputs) == 1
+        unpacker = msgpack.Unpacker()
+        unpacker.feed(outputs[0])
+        responses = list(unpacker)
         return responses
 
     def receive_with_retry(self, max_retry=5) -> List:
@@ -190,7 +182,7 @@ class PKLServer:
 
     def send_and_receive(self, msg_obj) -> List:
         self.send_message(msg_obj)
-        response = self.receive_with_retry()
+        response = self.receive_message()
         return response
 
     def terminate(self):

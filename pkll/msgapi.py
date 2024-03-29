@@ -1,15 +1,86 @@
 from dataclasses import asdict, dataclass, field, is_dataclass
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
-from pkll.msgapi.code import (
-    CODE_CLOSE_EVALUATOR,
-    CODE_EVALUATE,
-    CODE_EVALUATE_READ_MODULE_RESPONSE,
-    CODE_EVALUATE_READ_RESPONSE,
-    CODE_LIST_MODULES_RESPONSE,
-    CODE_LIST_RESOURCES_RESPONSE,
-    CODE_NEW_EVALUATOR,
-)
+CODE_NEW_EVALUATOR = 0x20
+CODE_NEW_EVALUATOR_RESPONSE = 0x21
+CODE_CLOSE_EVALUATOR = 0x22
+CODE_EVALUATE = 0x23
+CODE_EVALUATE_RESPONSE = 0x24
+CODE_EVALUATE_LOG = 0x25
+CODE_EVALUATE_READ = 0x26
+CODE_EVALUATE_READ_RESPONSE = 0x27
+CODE_EVALUATE_READ_MODULE = 0x28
+CODE_EVALUATE_READ_MODULE_RESPONSE = 0x29
+CODE_LIST_RESOURCES_REQUEST = 0x2A
+CODE_LIST_RESOURCES_RESPONSE = 0x2B
+CODE_LIST_MODULES_REQUEST = 0x2C
+CODE_LIST_MODULES_RESPONSE = 0x2D
+
+
+# Define the base interface for incoming messages
+class IncomingMessage:
+    pass
+
+
+@dataclass
+class CreateEvaluatorResponse(IncomingMessage):
+    requestId: int
+    evaluatorId: Optional[int] = None
+    error: Optional[str] = None
+
+
+@dataclass
+class EvaluateResponse(IncomingMessage):
+    """
+    A class to represent a response to an evaluation request.
+
+    Attributes:
+    - requestId (int): The requestId of the Evaluate request.
+    - evaluatorId (int): A number identifying the evaluator.
+    - result (Optional[Any]): The evaluation contents, if successful. None if evaluation failed.
+    - error (Optional[str]): A message detailing why evaluation failed. None if evaluation was successful.
+    """
+
+    requestId: int
+    evaluatorId: int
+    result: Optional[Any] = None
+    error: Optional[str] = None
+
+
+@dataclass
+class Log(IncomingMessage):
+    evaluatorId: int
+    level: int
+    message: str
+    frameUri: str
+
+
+@dataclass
+class EvaluatorReadResourceRequest(IncomingMessage):
+    requestId: int
+    evaluatorId: int
+    uri: str
+
+
+@dataclass
+class EvaluatorReadModuleRequest(IncomingMessage):
+    requestId: int
+    evaluatorId: int
+    uri: str
+
+
+@dataclass
+class EvaluatorListResourcesRequest(IncomingMessage):
+    requestId: int
+    evaluatorId: int
+    uri: str
+
+
+@dataclass
+class EvaluatorListModulesRequest(IncomingMessage):
+    requestId: int
+    evaluatorId: int
+    uri: str
 
 
 @dataclass

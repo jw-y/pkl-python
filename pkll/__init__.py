@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Union
 from urllib.parse import urlparse
 
 from pkll.evaluator import EVALUATOR_DEFAULT, Evaluator
-from pkll.msgapi.outgoing import (
+from pkll.msgapi import (
     ClientModuleReader,
     ClientResourceReader,
     Project,

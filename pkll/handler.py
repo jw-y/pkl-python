@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from pkll.msgapi.outgoing import PathElement
+from pkll.msgapi import PathElement
 
 
 @dataclass
