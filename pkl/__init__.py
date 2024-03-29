@@ -3,14 +3,14 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 from urllib.parse import urlparse
 
-from pkll.evaluator import EVALUATOR_DEFAULT, Evaluator
-from pkll.msgapi import (
+from pkl.evaluator import EVALUATOR_DEFAULT, Evaluator
+from pkl.msgapi import (
     ClientModuleReader,
     ClientResourceReader,
     Project,
     RemoteDependency,
 )
-from pkll.server import PKLServer
+from pkl.server import PKLServer
 
 # get version
 with open(os.path.join(os.path.dirname(__file__), "VERSION"), "r") as _f:

@@ -3,7 +3,7 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pkll"
+name = "pkl-python"
 dynamic = ["version"]
 description = "Python library for Apple's PKL."
 authors = [
@@ -25,7 +25,7 @@ dependencies = [
 exclude = ["codegen"]
 
 [tool.setuptools.dynamic]
-version = {file = "pkll/VERSION"}
+version = {file = "pkl/VERSION"}
 
 [project.optional-dependencies]
 dev = [
@@ -40,9 +40,9 @@ dev = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/jw-y/pkll"
-"Bug Reports" = "https://github.com/jw-y/pkll/issues"
-"Source" = "https://github.com/jw-y/pkll"
+"Homepage" = "https://github.com/jw-y/pkl"
+"Bug Reports" = "https://github.com/jw-y/pkl/issues"
+"Source" = "https://github.com/jw-y/pkl"
 
 [tool.twine]
 repository = "pypi"

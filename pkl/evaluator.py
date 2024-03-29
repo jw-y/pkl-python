@@ -5,8 +5,8 @@ from typing import Dict, List, Optional
 
 import msgpack
 
-from pkll.handler import ModuleHandler, ResourcesHandler
-from pkll.msgapi import (
+from pkl.handler import ModuleHandler, ResourcesHandler
+from pkl.msgapi import (
     CODE_EVALUATE_LOG,
     CODE_EVALUATE_READ,
     CODE_EVALUATE_READ_MODULE,
@@ -31,8 +31,8 @@ from pkll.msgapi import (
     Log,
     Project,
 )
-from pkll.parser import Parser
-from pkll.server import PKLServer
+from pkl.parser import Parser
+from pkl.server import PKLServer
 
 EVALUATOR_DEFAULT = "DEFAULT"
 

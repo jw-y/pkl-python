@@ -2,14 +2,14 @@ from pathlib import Path
 
 import pytest
 
-import pkll
-from pkll.handler import (
+import pkl
+from pkl.handler import (
     ListResponse,
     ReadModuleResponse,
     ReadResourceResponse,
     ResourcesHandler,
 )
-from pkll.msgapi import ClientResourceReader
+from pkl.msgapi import ClientResourceReader
 
 
 def test_read_modules():
@@ -24,7 +24,7 @@ def test_read_modules():
                 contents="foo = 1",
             )
 
-    _ = pkll.load(
+    _ = pkl.load(
         Path("./tests/myModule.pkl").absolute().as_uri(),
         allowedModules=["pkl:", "repl:", "file:", "customfs:"],
         clientModuleReaders=[
@@ -49,7 +49,7 @@ def test_read_modules_error():
             return ReadModuleResponse(error="read module error")
 
     with pytest.raises(Exception):
-        _ = pkll.load(
+        _ = pkl.load(
             Path("./tests/myModule.pkl").absolute().as_uri(),
             allowedModules=["pkl:", "repl:", "file:", "customfs:"],
             clientModuleReaders=[
@@ -77,7 +77,7 @@ def test_read_resources():
                 contents=b"Hello, World!",
             )
 
-    _ = pkll.load(
+    _ = pkl.load(
         Path("./tests/with_read.pkl").absolute().as_uri(),
         allowedModules=[
             "pkl:",

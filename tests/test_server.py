@@ -1,4 +1,4 @@
-from pkll.server import PKLServer
+from pkl.server import PKLServer
 
 
 def test_server():

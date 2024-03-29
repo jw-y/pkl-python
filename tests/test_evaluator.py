@@ -1,4 +1,4 @@
-from pkll import Evaluator
+from pkl import Evaluator
 
 
 def test_evaluator():

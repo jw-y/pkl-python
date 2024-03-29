@@ -1,4 +1,4 @@
-# PKLL - PKL Language Python Binding
+# pkl-python - PKL Language Python Binding
 Python binding for [Apple's Pkl language](https://pkl-lang.org/index.html).
 
 ### Status
@@ -9,12 +9,11 @@ Python binding for [Apple's Pkl language](https://pkl-lang.org/index.html).
 * [ ] (codgen) binary installation feature
 * [ ] (codgen) fix class order
 * [ ] (codgen) clean up code
-* [x] (evaluator) change default to dataclasses
 
 ## Installation
 
 ``` bash
-pip install pkll
+pip install pkl-python
 ```
 
 ## Usage
@@ -22,9 +21,9 @@ pip install pkll
 Here's how you can start using PKLL to load a PKL module:
 
 ```python
-import pkll
+import pkl
 
-config = pkll.load("path/to/pkl/example_module.pkl")
+config = pkl.load("path/to/pkl/example_module.pkl")
 print(config)
 ```
 
@@ -32,7 +31,7 @@ print(config)
 For details on the parameters, refer [Message Passing API](https://pkl-lang.org/main/current/bindings-specification/message-passing-api.html).
 
 ```python
-from pkll import load
+from pkl import load
 
 # Advanced loading with custom environment and properties
 result = load(
@@ -46,14 +45,14 @@ print(result)
 ### Custom Handler
 It is possible to add custom resources or module handler:
 ```python
-import pkll
-from pkll.handler import (
+import pkl
+from pkl.handler import (
     ListResponse,
     ReadModuleResponse,
     ReadResourceResponse,
     ResourcesHandler,
 )
-from pkll.msgapi.outgoing import ClientResourceReader
+from pkl.msgapi import ClientResourceReader
 
 class CustomModuleHandler(ResourcesHandler):
     def list_response(self, uri: str) -> ListResponse:
@@ -66,7 +65,7 @@ class CustomModuleHandler(ResourcesHandler):
             contents="foo = 1",
         )
 
-config = pkll.load(
+config = pkl.load(
     "./tests/myModule.pkl",
     allowedModules=["pkl:", "repl:", "file:", "customfs:"],
     clientModuleReaders=[
@@ -86,7 +85,7 @@ config = pkll.load(
 Contributions are welcome! If you'd like to contribute, please fork the repository and submit a pull request. For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
-PKLL is released under the MIT License. See the LICENSE file for more details.
+PKL is released under the MIT License. See the LICENSE file for more details.
 
 ## Contact
 For support or to contribute, please contact jwyang0213@gmail.com or visit our GitHub repository to report issues or submit pull requests.
