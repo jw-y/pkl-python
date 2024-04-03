@@ -1,13 +1,10 @@
 import atexit
 import os
 import platform
-import select
 import signal
 import stat
 import subprocess
-import warnings
 from pathlib import Path
-from typing import List
 
 import msgpack
 import requests
@@ -19,7 +16,7 @@ BINARIES = {
     ("linux", "aarch64"): "pkl-linux-aarch64",
     ("linux", "64bit", "alpine"): "pkl-alpine-linux-amd64",
 }
-PKL_VERSION = "0.25.2"
+PKL_VERSION = "0.25.3"
 BASE_PATH = "https://github.com/apple/pkl/releases/download/"
 
 
@@ -88,26 +85,15 @@ atexit.register(terminate_processes)
 
 
 class PKLServer:
-    def __init__(self):
-        self._process: subprocess.Popen = None
-        self._cmd = [get_binary_path(), "server"]
+    def __init__(self, cmd=None, debug=False):
+        self.cmd = cmd or [get_binary_path(), "server"]
         self.next_request_id = 1
+        self.unpacker = msgpack.Unpacker()
 
-    def get_request_id(self):
-        ret = self.next_request_id
-        self.next_request_id += 1
-        return ret
+        env = {"PKL_DEBUG": "1"} if debug else {}
 
-    def start_process(self, debug=False):
-        if self._process:
-            return
-
-        env = os.environ.copy()
-        if debug:
-            env = {"PKL_DEBUG": "1"}
-
-        self._process = subprocess.Popen(
-            self._cmd,
+        self.process = subprocess.Popen(
+            self.cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -116,76 +102,57 @@ class PKLServer:
             preexec_fn=preexec_function,
             env=env,
         )
-        stdout_fd = self._process.stdout.fileno()
-        stderr_fd = self._process.stderr.fileno()
-        os.set_blocking(stdout_fd, False)
-        os.set_blocking(stderr_fd, False)
-        _PROCESSES.append(self._process)
+        self.stdout = self.process.stdout
+        self.stdin = self.process.stdin
+        self.stderr = self.process.stderr
+        self.closed = False
 
-    def check_process(self, is_raise=False):
-        if self._process is None:
-            if is_raise:
-                raise ValueError("Start server first with 'start_process'")
-            return False
-        return True
+        os.set_blocking(self.stdout.fileno(), False)
+        os.set_blocking(self.stderr.fileno(), False)
+        _PROCESSES.append(self.process)
 
-    def send_message(self, msg_obj):
-        self.check_process(is_raise=True)
+    def get_request_id(self):
+        ret = self.next_request_id
+        self.next_request_id += 1
+        return ret
 
-        encoded_message = msgpack.packb(msg_obj)
-        self._process.stdin.write(encoded_message)
-        self._process.stdin.flush()
+    def send(self, msg):
+        if self.closed:
+            raise ValueError("Server closed")
+        self.stdin.write(msg)
+        self.stdin.flush()
 
-    def receive_message(self, timeout=None, empty_break=False) -> List:
-        self.check_process(is_raise=True)
+    def _read(self, stream):
+        msg = None
+        while msg is None:
+            msg = stream.read()
+        return msg
 
-        stdout = self._process.stdout
-        stderr = self._process.stderr
-        outputs = []
-
+    def _receive(self, stream):
+        msg = self._read(stream)
         while True:
-            readable, _, _ = select.select([stdout, stderr], [], [], timeout)
-            if empty_break and len(readable) == 0:
-                return
+            self.unpacker.feed(msg)
+            for unpacked in self.unpacker:
+                return unpacked
+            msg = self._read(stream)
 
-            for stream in readable:
-                output = stream.read()
+    def receive(self):
+        if self.closed:
+            raise ValueError("Server closed")
+        return self._receive(self.stdout)
 
-                if stream == stdout:
-                    outputs.append(output)
-                else:  # stderr
-                    print(output.decode(), end="")
-
-            if len(outputs) > 0:
-                break
-
-            # Check if the process has terminated
-            if self._process.poll() is not None:
-                print("Process has terminated")
-                break
-
-        assert len(outputs) == 1
-        unpacker = msgpack.Unpacker()
-        unpacker.feed(outputs[0])
-        responses = list(unpacker)
-        return responses
-
-    def receive_with_retry(self, max_retry=5) -> List:
-        response = None
-        retry = 0
-        while response is None and retry <= max_retry:
-            response = self.receive_message()
-            retry += 1
-        if retry == max_retry:
-            warnings.warn("Max retry reached.")
-        return response
-
-    def send_and_receive(self, msg_obj) -> List:
-        self.send_message(msg_obj)
-        response = self.receive_message()
-        return response
+    def receive_err(self):
+        if self.closed:
+            raise ValueError("Server closed")
+        msg = self.stderr.read()
+        if msg is not None:
+            print(msg.decode(), end="")
 
     def terminate(self):
-        self._process.terminate()
-        self._process.wait()
-        self._process = None
+        self.process.terminate()
+        self.process.stdout.close()
+        self.process.stderr.close()
+        self.process.stdin.close()
+        self.process.wait()
+        self.process = None
+        self.closed = True

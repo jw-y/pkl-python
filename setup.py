@@ -13,7 +13,7 @@ BINARIES = {
     ("linux", "aarch64"): "pkl-linux-aarch64",
     ("linux", "64bit", "alpine"): "pkl-alpine-linux-amd64",
 }
-PKL_VERSION = "0.25.2"
+PKL_VERSION = "0.25.3"
 BASE_PATH = "https://github.com/apple/pkl/releases/download/"
 
 

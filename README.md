@@ -31,54 +31,36 @@ print(config)
 For details on the parameters, refer [Message Passing API](https://pkl-lang.org/main/current/bindings-specification/message-passing-api.html).
 
 ```python
-from pkl import load
+import pkl
 
-# Advanced loading with custom environment and properties
-result = load(
-    "path/to/pkl/example_module.pkl"
-    env={"CUSTOM_ENV": "value"},
-    properties={"custom.property": "value"}
-)
-print(result)
+config = pkl.load("./tests/types.pkl")
+config = pkl.load("./tests/types.pkl", expr="datasize")
+config = pkl.load(None, module_text="a: Int = 1 + 1")
+config = pkl.load("./tests/types.pkl", debug=True)
 ```
 
-### Custom Handler
-It is possible to add custom resources or module handler:
+### Custom Readers
+It is possible to add module or resource or module readers:
 ```python
+from typing import List
+from dataclasses import dataclass
+
 import pkl
-from pkl.handler import (
-    ListResponse,
-    ReadModuleResponse,
-    ReadResourceResponse,
-    ResourcesHandler,
+from pkl import ModuleReader, ResourceReader, PathElement, ModuleSource, PreconfiguredOptions, PklError
+
+@dataclass
+class TestModuleReader(ModuleReader):
+    def read(self, url) -> str:
+        return "foo = 1"
+
+    def list_elements(self, url: str) -> List[PathElement]:
+        return [PathElement("foo.pkl", False)]
+
+opts = PreconfiguredOptions(
+    moduleReaders=[TestModuleReader("customfs", True, True, True)]
 )
-from pkl.msgapi import ClientResourceReader
-
-class CustomModuleHandler(ResourcesHandler):
-    def list_response(self, uri: str) -> ListResponse:
-        return ListResponse(
-            pathElements=[{"name": "foo.pkl", "isDirectory": False}]
-        )
-
-    def read_response(self, uri: str) -> ReadResourceResponse:
-        return ReadModuleResponse(
-            contents="foo = 1",
-        )
-
-config = pkl.load(
-    "./tests/myModule.pkl",
-    allowedModules=["pkl:", "repl:", "file:", "customfs:"],
-    clientModuleReaders=[
-        {
-            "scheme": "customfs",
-            "hasHierarchicalUris": True,
-            "isGlobbable": True,
-            "isLocal": True,
-        }
-    ],
-    debug=True,
-    module_handler=CustomModuleHandler(),
-)
+opts.allowedModules.append("customfs:")
+config = pkl.load("./tests/myModule.pkl", evaluator_options=opts)
 ```
 
 ## Contributing

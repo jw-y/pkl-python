@@ -1,5 +1,10 @@
-from dataclasses import asdict, dataclass, field, is_dataclass
-from typing import Any, Dict, List, Optional, Union
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass
+from typing import Any, Dict, List, Optional
+
+from pkl.evaluator_options import ClientModuleReader, ClientResourceReader, Project
+from pkl.reader import PathElement
 
 CODE_NEW_EVALUATOR = 0x20
 CODE_NEW_EVALUATOR_RESPONSE = 0x21
@@ -18,257 +23,290 @@ CODE_LIST_MODULES_RESPONSE = 0x2D
 
 
 # Define the base interface for incoming messages
+@dataclass
 class IncomingMessage:
-    pass
+    @classmethod
+    def decode(cls, incoming: List):
+        code, msg = incoming
+
+        if code == CODE_EVALUATE_RESPONSE:
+            return EvaluateResponse(**msg)
+        elif code == CODE_EVALUATE_LOG:
+            return Log(**msg)
+        elif code == CODE_NEW_EVALUATOR_RESPONSE:
+            return CreateEvaluatorResponse(**msg)
+        elif code == CODE_EVALUATE_READ:
+            return EvaluatorReadResourceRequest(**msg)
+        elif code == CODE_EVALUATE_READ_MODULE:
+            return EvaluatorReadModuleRequest(**msg)
+        elif code == CODE_LIST_RESOURCES_REQUEST:
+            return EvaluatorListResourcesRequest(**msg)
+        elif code == CODE_LIST_MODULES_REQUEST:
+            return EvaluatorListModulesRequest(**msg)
+        else:
+            raise ValueError(f"Unknown code: {hex(code)}")
 
 
 @dataclass
 class CreateEvaluatorResponse(IncomingMessage):
+    # A number identifying this request
     requestId: int
+
+    # A number identifying the created evaluator.
     evaluatorId: Optional[int] = None
+
+    # A message detailing why the evaluator was not created.
     error: Optional[str] = None
 
 
 @dataclass
 class EvaluateResponse(IncomingMessage):
-    """
-    A class to represent a response to an evaluation request.
-
-    Attributes:
-    - requestId (int): The requestId of the Evaluate request.
-    - evaluatorId (int): A number identifying the evaluator.
-    - result (Optional[Any]): The evaluation contents, if successful. None if evaluation failed.
-    - error (Optional[str]): A message detailing why evaluation failed. None if evaluation was successful.
-    """
-
+    # The requestId of the Evaluate request
     requestId: int
+
+    # A number identifying this evaluator.
     evaluatorId: int
+
+    # The evaluation contents, if successful.
     result: Optional[Any] = None
+
+    # A message detailing why evaluation failed.
     error: Optional[str] = None
 
 
 @dataclass
 class Log(IncomingMessage):
+    # A number identifying this evaluator.
     evaluatorId: int
+
+    # A number identifying the log level.
+    #
+    # - 0: trace
+    # - 1: warn
     level: int
+
+    # The message to be logged
     message: str
+
+    # A string representing the source location within Pkl code producing this log output.
     frameUri: str
 
 
 @dataclass
 class EvaluatorReadResourceRequest(IncomingMessage):
+    # A number identifying this request.
     requestId: int
+
+    # A number identifying this evaluator.
     evaluatorId: int
+
+    # The URI of the resource.
     uri: str
 
 
 @dataclass
 class EvaluatorReadModuleRequest(IncomingMessage):
+    # A number identifying this request.
     requestId: int
+
+    # A number identifying this evaluator.
     evaluatorId: int
+
+    # The URI of the module.
     uri: str
 
 
 @dataclass
 class EvaluatorListResourcesRequest(IncomingMessage):
+    # A number identifying this request.
     requestId: int
+
+    # A number identifying this evaluator.
     evaluatorId: int
+
+    # The base URI to list resources.
     uri: str
 
 
 @dataclass
 class EvaluatorListModulesRequest(IncomingMessage):
+    # A number identifying this request.
     requestId: int
+
+    # A number identifying this evaluator.
     evaluatorId: int
+
+    # The base URI to list modules.
     uri: str
 
 
 @dataclass
 class OutgoingMessage:
-    def to_msg_obj(self):
-        raise NotImplementedError("Subclasses must implement this method.")
+    CODE = None
 
+    def _dict_factory(self, items):
+        return {k: v for k, v in items if v is not None}
 
-def dataclass_to_dict(dc):
-    if not is_dataclass(dc):
-        return dc
-
-    dd = {k: dataclass_to_dict(v) for k, v in asdict(dc).items()}
-    return dd
-
-
-def _filter_dict(dd):
-    if not isinstance(dd, dict):
-        return dd
-    return {k: _filter_dict(v) for k, v in dd.items() if v is not None}
-
-
-def format_message(msg: OutgoingMessage, code: int):
-    # msg_dict = asdict(msg)
-    # filtered_dict = {k: v for k, v in msg_dict.items() if v is not None}
-    msg_dict = dataclass_to_dict(msg)
-    filtered_dict = _filter_dict(msg_dict)
-    msg_obj = [code, filtered_dict]
-    return msg_obj
-
-
-@dataclass
-class ResourceReader:
-    scheme: str
-    has_hierarchical_uris: bool
-    is_globbable: bool
-
-
-@dataclass
-class ModuleReader:
-    scheme: str
-    has_hierarchical_uris: bool
-    is_globbable: bool
-    is_local: bool
-
-
-@dataclass
-class Checksums:
-    sha256: str
-
-
-@dataclass
-class PathElement:
-    name: str
-    is_directory: bool
-
-
-@dataclass
-class ProjectOrDependency:
-    package_uri: Optional[str] = None
-    type: str = ""
-    project_file_uri: Optional[str] = None
-    checksums: Optional[Checksums] = None
-    dependencies: Dict[str, "ProjectOrDependency"] = field(default_factory=dict)
-
-
-@dataclass
-class ClientResourceReader:
-    scheme: str
-    hasHierarchicalUris: bool
-    isGlobbable: bool
-
-
-@dataclass
-class ClientModuleReader:
-    scheme: str
-    hasHierarchicalUris: bool
-    isGlobbable: bool
-    isLocal: bool
-
-
-@dataclass
-class RemoteDependency:
-    type: str = "remote"
-    packageUri: Optional[str] = None
-    checksums: Optional[Checksums] = None
-
-
-@dataclass
-class Project:
-    projectFileUri: str
-    packageUri: Optional[str] = None
-    type: str = "local"
-    dependencies: Dict[str, Union["Project", RemoteDependency]] = field(
-        default_factory=dict
-    )
+    def to_json(self):
+        assert self.CODE is not None
+        msg = asdict(self, dict_factory=self._dict_factory)
+        obj = [self.CODE, msg]
+        return obj
 
 
 @dataclass
 class CreateEvaluator(OutgoingMessage):
-    requestId: int
-    allowedModules: Optional[List[str]] = field(default=None)
-    allowedResources: Optional[List[str]] = field(default=None)
-    clientModuleReaders: Optional[List[ClientModuleReader]] = field(default=None)
-    clientResourceReaders: Optional[List[ClientResourceReader]] = field(default=None)
-    modulePaths: Optional[List[str]] = field(default=None)
-    env: Optional[Dict[str, str]] = field(default=None)
-    properties: Optional[Dict[str, str]] = field(default=None)
-    timeoutSeconds: Optional[int] = field(default=None)
-    rootDir: Optional[str] = field(default=None)
-    cacheDir: Optional[str] = field(default=None)
-    outputFormat: Optional[str] = field(default=None)
-    project: Optional[Project] = field(default=None)
+    CODE = CODE_NEW_EVALUATOR
 
-    def to_msg_obj(self):
-        return format_message(self, CODE_NEW_EVALUATOR)
+    # A number identifying this request
+    requestId: int = 0
+
+    # Regex patterns to determine which modules are allowed for import.
+    #
+    # API version of the CLI's `--allowed-modules` flag
+    allowedModules: Optional[List[str]] = None
+
+    # Regex patterns to dettermine which resources are allowed to be read.
+    #
+    # API version of the CLI's `--allowed-resources` flag
+    allowedResources: Optional[List[str]] = None
+
+    # Register client-side module readers.
+    clientModuleReaders: Optional[List[ClientModuleReader]] = None
+
+    # Register client-side resource readers.
+    clientResourceReaders: Optional[List[ClientResourceReader]] = None
+
+    # Directories, ZIP archives, or JAR archives
+    # to search when resolving `modulepath:` URIs.
+    #
+    # API version of the CLI's `--module-path` flag.
+    modulePaths: Optional[List[str]] = None
+
+    # Environment variable to set.
+    #
+    # API version of the CLI's `--env-var` flag.
+    env: Optional[Dict[str, str]] = None
+
+    # External properties to set.
+    #
+    # API version of the CLI's `--properties` flag.
+    properties: Optional[Dict[str, str]] = None
+
+    # Duration, in seconds, after which evaluation of a source module will be timed out.
+    #
+    # API version of the CLI's `--timeout` flag.
+    timeoutSeconds: Optional[int] = None
+
+    # Restricts access to file-based modules and resources to those located under the root directory.
+    rootDir: Optional[str] = None
+
+    # The cache directory for storing packages.
+    cacheDir: Optional[str] = None
+
+    # The format to generate.
+    #
+    # This sets the `pkl.outputFormat` external property.
+    outputFormat: Optional[str] = None
+
+    # The project dependency settings.
+    project: Optional[Project] = None
 
 
 @dataclass
 class CloseEvaluator(OutgoingMessage):
-    evaluatorId: int
+    CODE = CODE_CLOSE_EVALUATOR
 
-    def to_msg_obj(self):
-        return format_message(self, CODE_CLOSE_EVALUATOR)
+    # A number identifying this evaluator.
+    evaluatorId: int
 
 
 @dataclass
 class EvaluateRequest(OutgoingMessage):
-    """
-    A class to represent a request for evaluating a module or expression in Pkl.
-
-    Attributes:
-    - requestId: A number identifying this request.
-    - evaluatorId: A number identifying the evaluator.
-    - moduleUri: The absolute URI of the module to be evaluated.
-    - moduleText: The module's contents. If None, Pkl will load the module at runtime.
-    - expr: The Pkl expression to be evaluated within the module. If None, evaluates the whole module.
-    """
-
+    CODE = CODE_EVALUATE
+    # A number identifying this request
     requestId: int
-    evaluatorId: int
-    moduleUri: str
-    moduleText: Optional[str] = None
-    expr: Optional[str] = None
 
-    def to_msg_obj(self):
-        return format_message(self, CODE_EVALUATE)
+    # A number identifying this evaluator.
+    evaluatorId: int
+
+    # The absolute URI of the module to be evaluated.
+    moduleUri: str
+
+    # The module's contents.
+    #
+    # If [null], Pkl will load the module at runtime.
+    moduleText: Optional[str] = None
+
+    # The Pkl expression to be evaluated within the module.
+    #
+    # If [null], evaluates the whole module.
+    expr: Optional[str] = None
 
 
 @dataclass
 class EvaluatorReadResourceResponse(OutgoingMessage):
-    requestId: int
-    evaluatorId: int
-    contents: Optional[bytes] = None
-    error: Optional[str] = None
+    CODE = CODE_EVALUATE_READ_RESPONSE
 
-    def to_msg_obj(self):
-        return format_message(self, CODE_EVALUATE_READ_RESPONSE)
+    # A number identifying this request.
+    requestId: int
+
+    # A number identifying this evaluator.
+    evaluatorId: int
+
+    # The contents of the resource.
+    contents: Optional[bytes] = None
+
+    # The description of the error that occured when reading this resource.
+    error: Optional[str] = None
 
 
 @dataclass
 class EvaluatorReadModuleResponse(OutgoingMessage):
-    requestId: int
-    evaluatorId: int
-    contents: Optional[str] = None
-    error: Optional[str] = None
+    CODE = CODE_EVALUATE_READ_MODULE_RESPONSE
 
-    def to_msg_obj(self):
-        return format_message(self, CODE_EVALUATE_READ_MODULE_RESPONSE)
+    # A number identifying this request.
+    requestId: int
+
+    # A number identifying this evaluator.
+    evaluatorId: int
+
+    # The string contents of the module.
+    contents: Optional[str] = None
+
+    # The description of the error that occured when reading this resource.
+    error: Optional[str] = None
 
 
 @dataclass
 class EvaluatorListResourcesResponse(OutgoingMessage):
-    requestId: int
-    evaluatorId: int
-    pathElements: List[PathElement] = field(default_factory=list)
-    error: Optional[str] = None
+    CODE = CODE_LIST_RESOURCES_RESPONSE
 
-    def to_msg_obj(self):
-        return format_message(self, CODE_LIST_RESOURCES_RESPONSE)
+    # A number identifying this request.
+    requestId: int
+
+    # A number identifying this evaluator.
+    evaluatorId: int
+
+    # The elements at the provided base path.
+    pathElements: Optional[List[PathElement]] = None
+
+    # The description of the error that occured when listing elements.
+    error: Optional[str] = None
 
 
 @dataclass
 class EvaluatorListModulesResponse(OutgoingMessage):
-    requestId: int
-    evaluatorId: int
-    pathElements: List[PathElement] = field(default_factory=list)
-    error: Optional[str] = None
+    CODE = CODE_LIST_MODULES_RESPONSE
 
-    def to_msg_obj(self):
-        return format_message(self, CODE_LIST_MODULES_RESPONSE)
+    # A number identifying this request.
+    requestId: int
+
+    # A number identifying this evaluator.
+    evaluatorId: int
+
+    # The elements at the provided base path.
+    pathElements: Optional[List[PathElement]] = None
+
+    # The description of the error that occured when listing elements.
+    error: Optional[str] = None

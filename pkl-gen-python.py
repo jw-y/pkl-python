@@ -3,9 +3,10 @@ import os
 import sys
 import tempfile
 import uuid
+from dataclasses import replace
 from pathlib import Path
 
-import pkll
+import pkl
 
 VERSION = "1.0.0"  # Placeholder for actual version fetching logic
 
@@ -43,7 +44,7 @@ def run_inner(settings, pkl_input_module, verbose=False):
             print("temp_file:", temp_file.name)
 
         tmp_uri = Path(temp_file.name).as_uri()
-        files = pkll.load(
+        files = pkl.load(
             tmp_uri, expr="output.files.toMap().mapValues((_, it) -> it.text)"
         )
 
@@ -73,18 +74,19 @@ def load_generator_settings(settings_file=None):
         settings_file = "generator-settings.pkl"
     if settings_file is None:
         return GeneratorSettings.EMPTY
-    config = pkll.load(Path(settings_file).absolute().as_uri())
+    # config = pkl.load(Path(settings_file).absolute().as_uri())
+    config = pkl.load(settings_file)
     return config
 
 
 def build_generator_settings(args, pkl_input_modules):
     generator_settings = load_generator_settings(args.generator_settings)
     if pkl_input_modules:
-        generator_settings = generator_settings._replace(inputs=pkl_input_modules)
+        generator_settings = replace(generator_settings, inputs=pkl_input_modules)
     if args.dry_run:
-        generator_settings = generator_settings._replace(dryRun=args.dry_run)
+        generator_settings = replace(generator_settings, dryRun=args.dry_run)
     if args.output_path:
-        generator_settings = generator_settings._replace(outputPath=args.output_path)
+        generator_settings = replace(generator_settings, outputPath=args.output_path)
 
     if generator_settings.generateScript is None:
         raise ValueError("generateScript not specified")
