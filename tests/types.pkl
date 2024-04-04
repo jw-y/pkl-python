@@ -1,17 +1,37 @@
 
+a : Int = 1
+b : Float = 2.0
+c : String = "Hello, World!"
+d : Boolean = true
+e = Null
+
 dynamic = new Dynamic {}
 
-map = Map()
+class Bird {
+  name: String
+  lifespan: Int
+  migratory: Boolean
+}
+typed = new Bird {
+  name = "Pigeon"
+  lifespan = 8
+  migratory = false
+}
 
+map = Map()
 mapping : Mapping = new  {}
 
 list = List()
 listing : Listing = new {}
-set = Set()
+
+sett = Set()
 
 duration: Duration = 10.ms
+
 datasize: DataSize = 16.b
+
 pair = Pair(1, "A")
 
 x = IntSeq(0, 10)
+
 y = Regex("[a-z]{1,5}")

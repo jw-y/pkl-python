@@ -5,7 +5,7 @@ from urllib.parse import ParseResult, urlparse
 
 from pkl.evaluator_manager import Evaluator, EvaluatorManager
 from pkl.evaluator_options import EvaluatorOptions, PreconfiguredOptions
-from pkl.parser import Parser
+from pkl.parser import DataSize, Duration, IntSeq, Pair, Parser, Regex
 from pkl.reader import ModuleReader, PathElement, ResourceReader
 from pkl.utils import ModuleSource, PklBugError, PklError
 
@@ -108,4 +108,9 @@ __all__ = [
     "ModuleSource",
     "PklError",
     "PklBugError",
+    "Duration",
+    "DataSize",
+    "Pair",
+    "IntSeq",
+    "Regex",
 ]

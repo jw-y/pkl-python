@@ -80,15 +80,15 @@ class DataSize:
 
 
 @dataclass
-class Regex:
-    pattern: str
-
-
-@dataclass
 class IntSeq:
     start: int
     end: int
     step: int
+
+
+@dataclass
+class Regex:
+    pattern: str
 
 
 class Parser:

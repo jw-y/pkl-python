@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import List
 
 import pytest
@@ -14,7 +13,6 @@ from pkl import (
 
 
 def test_read_modules():
-    @dataclass
     class TestModuleReader(ModuleReader):
         def read(self, url) -> str:
             return "foo = 1"
@@ -30,7 +28,6 @@ def test_read_modules():
 
 
 def test_read_modules_error():
-    @dataclass
     class TestModuleReader(ModuleReader):
         def read(self, url) -> str:
             raise FileNotFoundError("foo.pkl not found")
@@ -47,7 +44,6 @@ def test_read_modules_error():
 
 
 def test_read_resources():
-    @dataclass
     class TestResourceReader(ResourceReader):
         def read(self, url) -> bytes:
             return b"Hello, World!"

@@ -154,5 +154,4 @@ class PKLServer:
         self.process.stderr.close()
         self.process.stdin.close()
         self.process.wait()
-        self.process = None
         self.closed = True
