@@ -100,7 +100,7 @@ class Evaluator:
         response: EvaluateResponse = self._manager.receive(requestId)
 
         if response.error is not None:
-            raise PklError(response.error)
+            raise PklError("\n" + response.error)
         return response.result
 
     def evaluate_module(self, source: ModuleSource):
@@ -214,7 +214,12 @@ class Evaluator:
 
 class EvaluatorManager:
     def __init__(
-        self, pkl_command: Optional[List[str]] = None, *, parser=None, debug=False
+        self,
+        pkl_command: Optional[List[str]] = None,
+        *,
+        parser=None,
+        namespace=None,
+        debug=False,
     ):
         self._evaluators: Dict[int, Evaluator] = {}
         self._closed = False
@@ -223,7 +228,7 @@ class EvaluatorManager:
         self._server = PKLServer(pkl_command, debug=debug)
 
         self._prev_id = -100
-        self._parser = parser or Parser()
+        self._parser = parser or Parser(namespace=namespace)
 
     def send(self, msg: OutgoingMessage):
         obj = msg.to_json()

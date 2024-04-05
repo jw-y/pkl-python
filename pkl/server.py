@@ -129,12 +129,11 @@ class PKLServer:
         return msg
 
     def _receive(self, stream):
-        msg = self._read(stream)
         while True:
-            self.unpacker.feed(msg)
             for unpacked in self.unpacker:
                 return unpacked
             msg = self._read(stream)
+            self.unpacker.feed(msg)
 
     def receive(self):
         if self.closed:

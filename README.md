@@ -15,7 +15,7 @@ pip install pkl-python
 ```
 
 ### Basic Usage
-Here's how you can start using PKLL to load a PKL module:
+Here's how you can start using `pkl-python` to load a PKL module:
 
 ```python
 import pkl

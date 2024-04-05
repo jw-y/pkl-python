@@ -4,7 +4,7 @@ from collections import namedtuple
 from dataclasses import dataclass, make_dataclass
 from datetime import timedelta
 from enum import Enum, auto
-from typing import Any, List, Literal
+from typing import Generic, List, Literal, TypeVar
 
 # create module for lookup
 _lookup_module = types.ModuleType(__name__ + "._lookup")
@@ -44,10 +44,14 @@ CODE_ENTRY = 0x11
 CODE_ELEMENT = 0x12
 
 
+T1 = TypeVar("T1")
+T2 = TypeVar("T2")
+
+
 @dataclass
-class Pair:
-    first: Any
-    second: Any
+class Pair(Generic[T1, T2]):
+    first: T1
+    second: T2
 
 
 @dataclass
@@ -94,13 +98,8 @@ class Regex:
 class Parser:
     def __init__(
         self,
+        namespace=None,
         force_render=False,
-        *,
-        typed_dynamic_result_type=ResultType.DATACLASS,
-        pair_result_type=ResultType.DATACLASS,
-        datasize_result_type=ResultType.DATACLASS,
-        regex_result_type=ResultType.DATACLASS,
-        intseq_result_type=ResultType.DATACLASS,
     ):
         self.type_handlers = {
             CODE_TYPED_DYNAMIC: self.parse_typed_dynamic,
@@ -120,18 +119,9 @@ class Parser:
             CODE_ENTRY: self.parse_entry,
             CODE_ELEMENT: self.parse_element,
         }
-        self._dataclass_cache = {}
-        self._namedtuple_cache = {
-            "__Pair__": namedtuple("Pair", ["first", "second"]),
-            "__DataSize__": namedtuple("DataSize", ["value", "unit"]),
-            "__Regex__": namedtuple("Regex", ["pattern"]),
-        }
-        self._force_render = force_render
-        self._typed_dynamic_result_type = typed_dynamic_result_type
-        self._pair_result_type = pair_result_type
-        self._datasize_result_type = datasize_result_type
-        self._regex_result_type = regex_result_type
-        self._intseq_result_type = intseq_result_type
+        self.namespace = namespace
+        self.dataclass_cache = {}
+        self.force_render = force_render
 
     def parse(self, obj):
         return self.handle_type(obj)
@@ -151,12 +141,12 @@ class Parser:
         return obj
 
     def get_dataclass_class(self, class_name: str, keys: List[str]):
-        if class_name not in self._dataclass_cache:
+        if class_name not in self.dataclass_cache:
             dynamic_class = make_dataclass(class_name, keys)
             dynamic_class.__module__ = _lookup_module.__name__
             setattr(_lookup_module, class_name, dynamic_class)
-            self._dataclass_cache[class_name] = dynamic_class
-        dynamic_class = self._dataclass_cache[class_name]
+            self.dataclass_cache[class_name] = dynamic_class
+        dynamic_class = self.dataclass_cache[class_name]
         return dynamic_class
 
     def parse_typed_dynamic(self, obj):
@@ -166,7 +156,7 @@ class Parser:
         property_list = list(map(self.handle_type, members))
 
         if CODE_ELEMENT in member_types:  # has element
-            if len(member_types) > 1 and not self._force_render:
+            if len(member_types) > 1 and not self.force_render:
                 raise ValueError(
                     "Cannot render object with both elements and properties/entries.\n"
                     "\tUse 'force_render=True'"
@@ -177,19 +167,18 @@ class Parser:
 
         # only properties and entries
         members = {k: v for m in property_list for k, v in m.items()}
-        result_type = self._typed_dynamic_result_type
         class_name = full_class_name.split("#")[-1].split(".")[-1]
-        if result_type == ResultType.DATACLASS:
-            dynamic_class = self.get_dataclass_class(class_name, members.keys())
-            res = dynamic_class(*members.values())
-            return res
-        elif result_type == ResultType.NAMEDTUPLE:
-            res = namedtuple(class_name, members.keys())(*members.values())
-            return res
-        elif result_type == ResultType.DICTIONARY:
-            return {full_class_name: members}
+
+        if self.namespace is not None:
+            if class_name not in self.namespace:
+                raise ValueError(
+                    f"'namespace' provided but '{class_name}' not found"
+                )
+            clazz = self.namespace[class_name]
         else:
-            raise ValueError(f"invalid result_type: '{result_type}'")
+            clazz = self.get_dataclass_class(class_name, members.keys())
+        res = clazz(*members.values())
+        return res
 
     def parse_map(self, obj):
         members = obj[1]
@@ -213,42 +202,16 @@ class Parser:
         return Duration(value, unit)
 
     def parse_pair(self, obj):
-        if self._pair_result_type == ResultType.DATACLASS:
-            return Pair(obj[1], obj[2])
-        elif self._pair_result_type == ResultType.NAMEDTUPLE:
-            return self._namedtuple_cache["__Pair__"](obj[1], obj[2])
-        elif self._pair_result_type == ResultType.LIST:
-            return [obj[1], obj[2]]
-        elif self._pair_result_type == ResultType.TUPLE:
-            return (obj[1], obj[2])
-        else:
-            raise ValueError(f"ResultType '{self._pair_result_type}' not supported")
+        return Pair(obj[1], obj[2])
 
     def parse_datasize(self, obj):
-        if self._datasize_result_type == ResultType.DATACLASS:
-            return DataSize(obj[1], obj[2])
-        elif self._datasize_result_type == ResultType.NAMEDTUPLE:
-            return self._namedtuple_cache["__DataSize__"](obj[1], obj[2])
-        elif self._datasize_result_type == ResultType.TUPLE:
-            return (obj[1], obj[2])
-        else:
-            raise ValueError(f"ResultType '{self._datasize_result_type}' not supported")
+        return DataSize(obj[1], obj[2])
 
     def parse_intseq(self, obj):
-        if self._intseq_result_type == ResultType.DATACLASS:
-            return IntSeq(obj[1], obj[2], obj[3])
-        elif self._intseq_result_type == ResultType.RANGE:
-            return range(obj[1], obj[2], obj[3])
-        else:
-            raise ValueError(f"ResultType '{self._intseq_result_type}' not supported")
+        return IntSeq(obj[1], obj[2], obj[3])
 
     def parse_regex(self, obj):
-        if self._datasize_result_type == ResultType.DATACLASS:
-            return Regex(obj[1])
-        elif self._datasize_result_type == ResultType.NAMEDTUPLE:
-            return self._namedtuple_cache["__Regex__"](obj[1])
-        else:
-            raise ValueError(f"ResultType '{self._datasize_result_type}' not supported")
+        return Regex(obj[1])
 
     def parse_class(self, obj):
         return
