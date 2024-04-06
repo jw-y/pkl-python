@@ -2,13 +2,26 @@ import argparse
 import os
 import sys
 import tempfile
-import uuid
 from dataclasses import replace
 from pathlib import Path
 
+from black import FileMode, format_str
+import isort
+
 import pkl
 
-VERSION = "1.0.0"  # Placeholder for actual version fetching logic
+
+def format_code(code: str, line_length: int = 88) -> str:
+
+    try:
+        code = isort.code(code)
+        # Format the code using Black's format_str function
+        formatted_code = format_str(code, mode=FileMode(line_length=line_length))
+        return formatted_code
+    except Exception as e:
+        # Handle potential errors, e.g., syntax errors in the input code
+        print(f"Error formatting code: {e}")
+        return code  # Return the original code if formatting fails
 
 
 class GeneratorSettings:
@@ -18,11 +31,6 @@ class GeneratorSettings:
         "dry_run": None,
         "generate_script": None,
     }
-
-
-def temp_file(self):
-    file_name = str(uuid.uuid4()) + ".pkl"
-    return os.path.join(tempfile.gettempdir(), file_name)
 
 
 def run_inner(settings, pkl_input_module, verbose=False):
@@ -61,6 +69,7 @@ def run_inner(settings, pkl_input_module, verbose=False):
             print("Written to:", fp)
         fp.parent.mkdir(exist_ok=True)
         with open(fp, "w", encoding="utf-8") as file:
+            contents = format_code(contents)
             file.write(contents)
 
 
@@ -124,7 +133,7 @@ def main():
     args = parser.parse_args()
 
     if args.version:
-        print(VERSION)
+        print(pkl.__version__)
         sys.exit()
 
     pkl_input_modules = [Path(module).absolute() for module in args.pkl_input_modules]

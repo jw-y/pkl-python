@@ -30,22 +30,8 @@ classInfo: PythonMapping.Class = mapping as PythonMapping.Class
 
 structs: Mapping<String, String>
 
-//topLevelContents = protocol
 topLevelContents = imports.join("\n")
 
-/*
-contents = new Listing {
-  when (classInfo.protocol != null) {
-    "typealias \(classInfo.protocol.name) = \(classInfo.protocol.fullName)"
-  }
-  when (!isAbstract) {
-    when (classInfo.protocol != null) {
-      ""
-    }
-    struct
-  }
-}.join("\n")
-*/
 contents = new Listing {
   inner
 }.join("\n")
@@ -53,17 +39,11 @@ contents = new Listing {
 local superClasses: String =
   if (superClass != null)
     if (classInfo.namespaceName == superClass.namespaceName)
-      "(" + superClass.namespaceName + ")"
+      "(" + superClass.inner.name + ")"
     else
-      "(\(superClass.namespaceName)_pkl.\(superClass.namespaceName))"
+      "(\(superClass.namespaceName)_pkl.\(superClass.inner.name))"
   else
     ""
-
-local propertiesWithDefault = properties.filter((k, v) -> v.defaultValue != null)
-local propertiesWithoutDefault = properties.filter((k, v) -> v.defaultValue == null)
-
-local function renderNoDefaultList(): String =
-  propertiesWithoutDefault.values.map((it) -> "(\"\(it.name)\", self.\(it.name))").join(", ")
 
 local inner: String =
 new Listing {
@@ -74,48 +54,13 @@ new Listing {
   "@dataclass"
   "class \(classInfo.inner.name)\(superClasses):"
   when (!properties.isEmpty) {
-    for (pklPropertyName, field in propertiesWithoutDefault) {
-      renderProperty(field)
-      ""
-    }
-    for (pklPropertyName, field in propertiesWithDefault) {
+    for (pklPropertyName, field in properties) {
       renderProperty(field)
       ""
     }
   }
-  "\(module.indent)_registered_identifier: str = \(utils.toPythonString(classInfo.source.reflectee.toString()))"
-  when (superClass != null && !propertiesWithoutDefault.isEmpty){
-    ""
-    """
-    \(module.indent)def __post_init__(self):
-    \(module.indent.repeat(2))no_default_list = [\(renderNoDefaultList())]
-    \(module.indent.repeat(2))for n, x in no_default_list:
-    \(module.indent.repeat(3))if x is _NO_DEFAULT:
-    \(module.indent.repeat(4))raise TypeError(f"__init__ missing 1 required argument: '{n}'")
-    """
-  }
-  /*
-  when (properties.values.any((p) -> p.isPolymorphic)) {
-    // need to implement ==, hash and both inits
-    "\n\n"
-    synthesisedEqualsEquals
-    "\n\n"
-    synthesisedHash
-    "\n\n"
-    synthesisedInitDecoder
-  } else {
-    when (properties.values.any((p) -> p.isAny)) {
-      // need to implement both inits
-      "\n\n"
-      synthesisedInitDecoder
-    }
-  }
-  when (codingKeys != null) {
-    "\n\n"
-    codingKeys
-  }
-  */
-}.join("\n")
+  "\(module.indent)_registered_identifier = \(utils.toPythonString(classInfo.source.reflectee.toString()))"
+ }.join("\n")
 
 local isAbstract: Boolean = clazz.modifiers.contains("abstract")
 
@@ -240,17 +185,6 @@ local function doesNotInherit(clazz: reflect.Class?) =
   clazz.superclass == null
   || clazz.superclass.reflectee == Typed
 
-local structSuperclasses: String =
-  if (classInfo.protocol != null)
-    classInfo.protocol.name
-  else if (superClass != null)
-    if (classInfo.namespaceName == superClass.namespaceName)
-      superClass.name
-    else
-      "\(superClass.namespaceName).\(superClass.name)"
-  else
-    "PklRegisteredType, Decodable, Hashable"
-
 /*
 local struct: String = new Listing {
   when (clazz.docComment != null) {
@@ -332,138 +266,15 @@ local struct: String = new Listing {
 }.join("")
 */
 
-local synthesisedEqualsEquals =
-  new Listing {
-    "\(module.indent)static func ==(lhs: \(classInfo.struct.name), rhs: \(classInfo.struct.name)) -> Bool {\n"
-    for (prop, field in properties) {
-      when (prop != properties.keys.first) {
-        "\n\(module.indent.repeat(2))&& "
-      } else {
-        module.indent.repeat(2)
-      }
-      when (field.isPolymorphic) {
-        if (field.type is Type.Array)
-          "arrayEquals(arr1: lhs.\(prop), arr2: rhs.\(prop))"
-        else if (field.type is Type.Dictionary)
-          "mapEquals(map1: lhs.\(prop), map2: rhs.\(prop))"
-        else if (field.type is Type.Nullable)
-          "((lhs.\(prop) == nil && rhs.\(prop) == nil) || lhs.\(prop)?.isDynamicallyEqual(to: rhs.\(prop)) ?? false)"
-        else
-          "lhs.\(prop).isDynamicallyEqual(to: rhs.\(prop))"
-      } else {
-        "lhs.\(prop) == rhs.\(prop)"
-      }
-    }
-    "\n"
-    "\(module.indent)}"
-  }.join("")
-
-local synthesisedHash =
-  new Listing {
-    "\(module.indent)func hash(into hasher: inout Hasher) {\n"
-    properties.keys.map((pklPropertyName) ->
-      let (field = properties[pklPropertyName])
-      if (field.isPolymorphic)
-        if (field.type is Type.Array)
-          """
-          \(module.indent.repeat(2))for x in self.\(field.name) {
-          \(module.indent.repeat(3))hasher.combine(x)
-          \(module.indent.repeat(2))}
-          """
-        else if (field.type is Type.Dictionary)
-          """
-          \(module.indent.repeat(2))for (k, v) in self.\(field.name) {
-          \(module.indent.repeat(3))hasher.combine(k)
-          \(module.indent.repeat(3))hasher.combine(v)
-          \(module.indent.repeat(2))}
-          """
-        else if (field.type is Type.Nullable)
-          """
-          \(module.indent.repeat(2))if let \(field.name) {
-          \(module.indent.repeat(3))hasher.combine(\(field.name))
-          \(module.indent.repeat(2))}
-          """
-        else
-          "\(module.indent.repeat(2))hasher.combine(\(field.name))"
-      else
-        "\(module.indent.repeat(2))hasher.combine(\(field.name))"
-    ).join("\n")
-    "\n"
-    "\(module.indent)}"
-  }.join("")
-
-local synthesisedInit =
-  if (properties.isEmpty) "\(module.indent)init() {}"
-  else
-    let (renderedProperties = properties.keys.map((name) -> renderPropertyBase(properties[name])))
-    let (renderedPropertiesLength = renderedProperties.toList().map((it) -> it.length + 2).fold(0, (a, b) -> a + b))
-      new Listing {
-        "\(module.indent)init("
-        when (renderedPropertiesLength > 80) {
-          "\n"
-          for (renderedProp in renderedProperties) {
-            module.indent.repeat(2)
-            renderedProp
-            when (renderedProp != renderedProperties.last) {
-              ",\n"
-            } else {
-              "\n"
-            }
-          }
-          "\(module.indent)) {\n"
-        } else {
-          renderedProperties.join(", ")
-          ") {\n"
-        }
-        properties.values.map((prop) ->
-          "\(module.indent.repeat(2))self.\(prop.name) = \(prop.name)"
-        ).join("\n")
-        "\n"
-        "\(module.indent)}"
-      }.join("")
-
-local synthesisedInitDecoder =
-  new Listing {
-    "\(module.indent)init(from decoder: Decoder) throws {\n"
-    "\(module.indent.repeat(2))let dec = try decoder.container(keyedBy: PklCodingKey.self)\n"
-    for (pklPropertyName, field in properties) {
-      "\(module.indent.repeat(2))let \(field.name) = try dec.decode("
-      when (field.isPolymorphic || field.isAny) {
-        field.type.renderGeneric(classInfo.namespaceName)
-      } else {
-        field.type.render(classInfo.namespaceName)
-      }
-      ".self, forKey: PklCodingKey(string: \"\(pklPropertyName)\"))"
-      when (field.isPolymorphic || field.isAny) {
-        if (field.type is Type.Array)
-          "\n\(module.indent.repeat(4)).map { $0.value as! \((field.type as Type.Array).elem.render(classInfo.namespaceName)) }"
-        else if (field.type is Type.Dictionary)
-          "\n\(module.indent.repeat(4)).mapValues { $0.value as! \((field.type as Type.Dictionary).elem.render(classInfo.namespaceName)) }"
-        else if (field.type == typegen.anyType)
-          ".value"
-        else
-          "\n\(module.indent.repeat(4)).value as! \(field.type.render(classInfo.namespaceName))"
-      }
-      "\n"
-    }
-    "\(module.indent.repeat(2))self = \(classInfo.struct.name)("
-    properties.values.map((prop) ->
-      "\(prop.name): \(prop.name)"
-    ).join(", ")
-    ")\n\(module.indent)}"
-  }.join("")
-
 local function renderPropertyBase(property: Property): String =
-  let (type = property.type.render(classInfo.namespaceName))
-  let (defaultStr =
-    if (property.defaultValue != null)
-      " = \(property.defaultValue)"
-    else if (superClass == null)
-      ""
-    else
-      " = _NO_DEFAULT"
-      )
-    "\(module.indent)\(property.name): \(type)\(defaultStr)"
+  let (
+    type =
+      if (property.type is Type.Declared)
+        (property.type) { isUserDefined = false }.render(classInfo.namespaceName) // don't put double quotes
+      else
+        property.type.render(classInfo.namespaceName)
+  )
+  "\(module.indent)\(property.name): \(type)"
 
 local function renderProperty(property: Property) = new Listing {
   when (property.docComment != null) {
@@ -472,39 +283,6 @@ local function renderProperty(property: Property) = new Listing {
   }
   renderPropertyBase(property)
 }.join("")
-
-local codingKeys: String? =
-  if (properties.every((pklName, prop) -> pklName == prop.name)) null
-  else
-    new Listing {
-      "\(module.indent)enum CodingKeys: String, CodingKey {"
-      for (pklName, prop in properties) {
-        "\(module.indent.repeat(2))case \(prop.name) = \(utils.toPythonString(pklName))"
-      }
-      "\(module.indent)}"
-    }.join("\n")
-
-local protocol: String? =
-  if (classInfo.protocol != null)
-    // Only generate interface methods for properties that don't exist on the superclass.
-    // Properties on the superclass are handled via interface embedding.
-    let (methodsToGenerate = properties.filter((_, field) -> !field.isInherited))
-      new Listing {
-        "protocol \(classInfo.protocol.fullName): "
-        when (superClass != null) {
-          "\(superClass.protocol.fullName) {\n"
-        } else {
-          "PklRegisteredType, DynamicallyEquatable, Hashable {\n"
-        }
-        for (key, field in methodsToGenerate) {
-          when (key != methodsToGenerate.keys.first) {
-            "\n"
-          }
-          "\(module.indent)var \(field.name): \(field.type.render(classInfo.pythonModuleName)) { get }\n"
-        }
-        "}\n"
-      }.join("")
-  else null
 
 const local function canBeDefault(property: reflect.Property): Boolean =
   let (value = property.defaultValue)
@@ -543,6 +321,4 @@ local class Property {
 
   /// True if this field represents the Pkl type Any
   isAny: Boolean = type.isAny
-
-  fixed defaultValue : String? = renderDefault(property)
 }

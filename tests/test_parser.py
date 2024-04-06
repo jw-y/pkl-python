@@ -54,5 +54,5 @@ def test_lib1():
 
 
 def test_types():
-    file = Path("./tests") / "types.pkl"
+    file = Path("./tests/pkls") / "types.pkl"
     _ = pkl.load(file)
