@@ -1,6 +1,5 @@
 import sys
 import types
-from collections import namedtuple
 from dataclasses import dataclass, make_dataclass
 from datetime import timedelta
 from enum import Enum, auto
@@ -171,9 +170,7 @@ class Parser:
 
         if self.namespace is not None:
             if class_name not in self.namespace:
-                raise ValueError(
-                    f"'namespace' provided but '{class_name}' not found"
-                )
+                raise ValueError(f"'namespace' provided but '{class_name}' not found")
             clazz = self.namespace[class_name]
         else:
             clazz = self.get_dataclass_class(class_name, members.keys())

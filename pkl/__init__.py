@@ -42,7 +42,6 @@ def load(
     project_dir: str = PKL_DEFAULT,
     evaluator_options: EvaluatorOptions = PreconfiguredOptions(),
     parser=None,
-    namespace=None,
     debug=False,
     **kwargs,
 ):
@@ -61,7 +60,6 @@ def load(
             extra options for evaluator
         parser: A specific parser to be used for parsing the module.
             If None, a default parser is used.
-        namespace: Dictionary for the module namespace. It is used for loading pkl files.
         debug (bool, False): Enable debugging mode for additional output and diagnostics.
         **kwargs: Additional keyword arguments for extensibility and future use.
 
@@ -88,11 +86,13 @@ def load(
     if project_dir is PKL_DEFAULT:
         project_dir = _search_project_dir(str(module_uri))
 
-    with EvaluatorManager(parser=parser, namespace=namespace, debug=debug) as manager:
+    with EvaluatorManager(debug=debug) as manager:
         if (Path(project_dir) / "PklProject").exists():
-            evaluator = manager.new_project_evaluator(project_dir, evaluator_options)
+            evaluator = manager.new_project_evaluator(
+                project_dir, evaluator_options, parser=parser
+            )
         else:
-            evaluator = manager.new_evaluator(evaluator_options)
+            evaluator = manager.new_evaluator(evaluator_options, parser=parser)
         config = evaluator.evaluate_expression(source, expr)
     return config
 

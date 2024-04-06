@@ -45,6 +45,8 @@ class Evaluator:
         manager: "EvaluatorManager",
         resource_readers: Optional[List[ResourceReader]] = None,
         module_readers: Optional[List[ModuleReader]] = None,
+        *,
+        parser=None,
     ):
         self.evaluatorId = evaluatorId
         self.pending_requests = {}
@@ -54,6 +56,8 @@ class Evaluator:
 
         self.resource_readers = resource_readers or []
         self.module_readers = module_readers or []
+
+        self.parser = parser or Parser()
 
     def _get_requestId(self):
         res = self._prev_requestId + 1
@@ -79,7 +83,7 @@ class Evaluator:
     def evaluate_expression(self, source: ModuleSource, expr: Optional[str]):
         binary_res = self._evaluate_expression_raw(source, expr)
         decoded = msgpack.unpackb(binary_res, strict_map_key=False)
-        parsed = self._manager._parser.parse(decoded)
+        parsed = self.parser.parse(decoded)
         return parsed
 
     def _evaluate_expression_raw(self, source: ModuleSource, expr: Optional[str]):
@@ -217,8 +221,6 @@ class EvaluatorManager:
         self,
         pkl_command: Optional[List[str]] = None,
         *,
-        parser=None,
-        namespace=None,
         debug=False,
     ):
         self._evaluators: Dict[int, Evaluator] = {}
@@ -228,7 +230,6 @@ class EvaluatorManager:
         self._server = PKLServer(pkl_command, debug=debug)
 
         self._prev_id = -100
-        self._parser = parser or Parser(namespace=namespace)
 
     def send(self, msg: OutgoingMessage):
         obj = msg.to_json()
@@ -263,7 +264,7 @@ class EvaluatorManager:
             self._evaluators[decoded.evaluatorId].handle_request(decoded)
 
     def new_evaluator(
-        self, options: EvaluatorOptions, project: Optional[Project] = None
+        self, options: EvaluatorOptions, project: Optional[Project] = None, parser=None
     ):
         if self._closed:
             raise ValueError("Server closed")
@@ -291,14 +292,17 @@ class EvaluatorManager:
             self,
             resource_readers=options.resourceReaders,
             module_readers=options.moduleReaders,
+            parser=parser,
         )
         self._evaluators[response.evaluatorId] = evaluator
         return evaluator
 
-    def new_project_evaluator(self, project_dir: str, options: EvaluatorOptions):
-        project_evaluator = self.new_evaluator(PreconfiguredOptions())
+    def new_project_evaluator(
+        self, project_dir: str, options: EvaluatorOptions, parser=None
+    ):
+        project_evaluator = self.new_evaluator(PreconfiguredOptions(), parser=parser)
         project = load_project_from_evaluator(project_evaluator, project_dir)
-        evaluator = self.new_evaluator(options, project)
+        evaluator = self.new_evaluator(options, project, parser)
         return evaluator
 
     def _get_start_requestId(self):
