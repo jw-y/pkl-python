@@ -71,7 +71,8 @@ function generateDeclaredType(
   let (referent = type.referent)
   let (reflectee = type.referent.reflectee)
   let (mapped = seenMappings.findOrNull((it) -> it.source == referent))
-    mapped?.type ??
+    //mapped?.type ??
+    mapped?.type?.getUserDefined() ??
       mappedTypes.getOrNull(reflectee) ??
         mappedHigherOrderTypes.getOrNull(reflectee)?.apply(type, enclosing, seenMappings) ??
           if (referent is reflect.TypeAlias)
@@ -80,7 +81,8 @@ function generateDeclaredType(
 
 local function builtInType(typ: String): Type.Declared = new { typeName = typ }
 
-anyType: Type.Nullable = new { elem = builtInType("AnyHashable") }
+//anyType: Type.Nullable = new { elem = builtInType("Any") }
+anyType = builtInType("Any")
 
 local neverType: Type.Declared = builtInType("Never")
 
@@ -101,23 +103,23 @@ mappedTypes: Mapping<Class|TypeAlias, Type> = new {
   [Any] = anyType
   [Char] = new Type.Declared { typeName = "char" }
   [Duration] = new Type.Declared {
-    pythonModuleName = "PklPython"
+    pythonModuleName = "pkl"
     typeName = "Duration"
   }
   [DurationUnit] = new Type.Declared {
-    pythonModuleName = "PklPython"
+    pythonModuleName = "pkl"
     typeName = "DurationUnit"
   }
   [Dynamic] = new Type.Declared {
-    pythonModuleName = "PklPython"
+    pythonModuleName = "pkl"
     typeName = "Object"
   }
   [DataSize] = new Type.Declared {
-    pythonModuleName = "PklPython"
+    pythonModuleName = "pkl"
     typeName = "DataSize"
   }
   [DataSizeUnit] = new Type.Declared {
-    pythonModuleName = "PklPython"
+    pythonModuleName = "pkl"
     typeName = "DataSizeUnit"
   }
 }
@@ -155,7 +157,7 @@ mappedHigherOrderTypes: Mapping<Class|TypeAlias, (reflect.DeclaredType, reflect.
       }
   [Pair] = (type, enclosing, seenMappings) -> new Type.Declared {
     typeName = "Pair"
-    pythonModuleName = "Pkl"
+    pythonModuleName = "pkl"
     local typeArgKey = type.typeArguments.getOrNull(0)
     local typeArgValue = type.typeArguments.getOrNull(1)
     typeArguments = List(

@@ -23,6 +23,7 @@ import "TypeAliasGen.pkl"
 import "PythonMapping.pkl"
 import "Gen.pkl"
 import "utils.pkl"
+import "typegen.pkl"
 
 `module`: reflect.Module
 
@@ -77,13 +78,6 @@ local generated: List<Gen>(hasUniqueNames()) = moduleMappings.map((it) ->
       mapping = it
       namespaceName = it.namespaceName
     }
-  else if (it is PythonMapping.Enum)
-    new EnumGen {
-      indent = module.indent
-      mappings = module.mappings
-      mapping = it
-      namespaceName = it.namespaceName
-    }
   else
     new TypeAliasGen {
       indent = module.indent
@@ -121,55 +115,117 @@ local convenienceLoaders = """
 */
 local convenienceLoaders = """
   @classmethod
-  def load_pkl(cls, source: str):
+  def load_pkl(cls, source):
   \(module.indent)# Load the Pkl module at the given source and evaluate it into `\(namespaceName).Module`.
   \(module.indent)# - Parameter source: The source of the Pkl module.
-  \(module.indent)config = pkll.load(source)
-  \(module.indent)return cls(**config._asdict())
+  \(module.indent)config = pkl.load(source, namespace = globals())
+  \(module.indent)return config
   """
 
-local generatedPartitioned = generated.partition((it)-> if(it is ClassGen) utils.isModuleClass(it.clazz) else false)
+local function isTypeAlias(clazz, type) =
+  if (type is reflect.UnionType)
+    type.members.any((it) -> isTypeAlias(clazz, it) )
+  else if (type is reflect.StringLiteralType)
+    false
+  else if (type is reflect.NullableType)
+    isTypeAlias(clazz, type.member)
+  else if (type is reflect.DeclaredType)
+    let(referent = type.referent)
+    let(reflectee = type.referent.reflectee)
+    //let(_ = trace(List(clazz.name, reflectee.simpleName)))
+    clazz.isSubclassOf(reflect.Class(reflectee))
+    /*
+    if ( typegen.mappedTypes.containsKey(reflectee) )
+      //clazz.isSubclassOf(reflect.Class(reflectee))
+      true
+    else if ( typegen.mappedHigherOrderTypes.containsKey(reflectee) )
+      //clazz.isSubclassOf(reflect.Class(reflectee))
+      true
+    else
+      let(_ = trace(referent.name))
+      throw("Unsure how to generate this type: \(type)")
+    */
+  else
+    let(_ = trace(type.name))
+    throw("Unsure how to generate this type: \(type)")
+  /*
+  if (type is reflect.DeclaredType)
+    let(referent = type.referent)
+    let(reflectee = type.referent.reflectee)
+    if (referent is reflect.TypeAlias)
+      let(_ = trace(type.name) )
+      //isTypeAlias(clazz, referent.referent)
+      true
+    else
+      clazz.isSubclassOf(reflect.Class(reflectee.getClass()))
+  else if (type is reflect.UnionType)
+    type.members.any((it) -> isTypeAlias(clazz, it))
+  else if (type is reflect.StringLiteralType)
+    false
+  else throw("Unsure how to generate this type: \(type)")
+  */
+
+/*
+local classComparator = (a: Gen, b: Gen) ->
+  if ( (a is TypeAliasGen) &&  (b is TypeAliasGen))
+    false
+  else if ( (a is TypeAliasGen) && (b is ClassGen))
+    let ( typealiaz = a.typealiaz )
+    let ( class_is_typealias = isTypeAlias(b.clazz, typealiaz.referent) )
+    let ( _ = trace(List(b.clazz.name, typealiaz.name, class_is_typealias)) )
+    !class_is_typealias
+  else if ( (a is ClassGen) &&  (b is TypeAliasGen) )
+    let ( typealiaz = b.typealiaz )
+    let ( class_is_typealias = isTypeAlias(a.clazz, typealiaz.referent) )
+    let ( _ = trace(List(a.clazz.name, typealiaz.name, class_is_typealias)) )
+    class_is_typealias
+  else if ( a.clazz.isSubclassOf(b.clazz) )
+    false // `a` is subclass of `b`
+  else if ( utils.isModuleClass(a.clazz) && !(utils.isModuleClass(b.clazz)) )
+    false // `a` should come last
+  else
+    true
+*/
+
+local classComparator = (a: Gen, b: Gen) ->
+  if ( b is TypeAliasGen )
+    false
+  else if ( a is TypeAliasGen )
+    true
+  else if ( a.clazz.isSubclassOf(b.clazz) )
+    false // `a` is subclass of `b`
+  else if ( utils.isModuleClass(a.clazz) && !(utils.isModuleClass(b.clazz)) )
+    false // `a` should come last
+  else
+    true
+
+local generatedSorted = generated.sortWith(classComparator)
+
 
 contents = new Listing {
   utils.renderHeaderComment(`module`)
   """
-  from typing import Dict, List, Literal, Optional, Union
+  from __future__ import annotations
+  from typing import Any, Dict, List, Literal, Optional, Set, Union
   from dataclasses import dataclass
-  import pkll
+  import pkl
   """
   when (topLevelContents.length > 0) {
     topLevelContents.join("\n")
   }
   ""
-  "_NO_DEFAULT = object()"
-  //"# class \(namespaceName):\n"
-  /*
-  for (gen in generated.second) {
-    when (gen != generated.first) {
-      ""
-    }
-    //module.indent + gen.contents.replaceAll(Regex("\n(?!\n)"), "\n\(module.indent)")
-    //gen.contents.replaceAll(Regex("\n(?!\n)"), "\n\(module.indent)")
-    gen.contents
-  }
-  */
   ""
-  for (gen in generatedPartitioned.second) {
-    /*
-    when (gen != generatedPartitioned.second.first) {
-      ""
-    }
-    */
+  for (gen in generatedSorted) {
     gen.contents
     ""
   }
-  for (gen in generatedPartitioned.first) {
-    gen.contents // moduleClass goes last
-  }
+  module.indent + convenienceLoaders.replaceAll(Regex("\n(?!\n)"), "\n\(module.indent)")
+  /*
   when (!`module`.modifiers.contains("open") && !`module`.modifiers.contains("abstract")) {
     ""
     module.indent + convenienceLoaders.replaceAll(Regex("\n(?!\n)"), "\n\(module.indent)")
   }
+  */
 }.join("\n")
 
 output {

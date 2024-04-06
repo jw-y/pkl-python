@@ -19,6 +19,8 @@ classifiers = [
 ]
 dependencies = [
     "msgpack >= 1.0.8"
+    "black"
+    "isort"
 ]
 
 [tool.setuptools.packages.find]

@@ -26,4 +26,4 @@ typealiaz: reflect.TypeAlias = mapping.source as reflect.TypeAlias
 
 type: Type = typegen.generateType(typealiaz.referent, typealiaz, mappings)
 
-contents = "\(mapping.name) = \(type.render(namespaceName))"
+contents = "\(mapping.name) = \(type.renderForwardSafe(namespaceName))"

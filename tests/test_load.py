@@ -2,11 +2,11 @@ import pkl
 
 
 def test_load():
-    _ = pkl.load("./tests/types.pkl")
+    _ = pkl.load("./tests/pkls/types.pkl")
 
 
 def test_load_expr():
-    config = pkl.load("./tests/types.pkl", expr="datasize")
+    config = pkl.load("./tests/pkls/types.pkl", expr="datasize")
     assert config.__class__.__name__ == "DataSize"
 
 
@@ -16,4 +16,4 @@ def test_load_text():
 
 
 def test_load_debug():
-    _ = pkl.load("./tests/types.pkl", debug=True)
+    _ = pkl.load("./tests/pkls/types.pkl", debug=True)

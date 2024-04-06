@@ -1,0 +1,5 @@
+many = new Listing {
+  for (i in IntSeq(0, 100)) {
+    trace(i)
+  }
+}

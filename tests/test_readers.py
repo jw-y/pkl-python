@@ -24,7 +24,7 @@ def test_read_modules():
         moduleReaders=[TestModuleReader("customfs", True, True, True)]
     )
     opts.allowedModules.append("customfs:")
-    _ = pkl.load("./tests/myModule.pkl", evaluator_options=opts)
+    _ = pkl.load("./tests/pkls/myModule.pkl", evaluator_options=opts)
 
 
 def test_read_modules_error():
@@ -40,7 +40,7 @@ def test_read_modules_error():
     )
     opts.allowedModules.append("customfs:")
     with pytest.raises(PklError):
-        _ = pkl.load("./tests/myModule.pkl", evaluator_options=opts)
+        _ = pkl.load("./tests/pkls/myModule.pkl", evaluator_options=opts)
 
 
 def test_read_resources():
@@ -60,4 +60,4 @@ def test_read_resources():
     )
     opts.allowedResources.append("customfs:")
 
-    _ = pkl.load("./tests/with_read.pkl", evaluator_options=opts)
+    _ = pkl.load("./tests/pkls/with_read.pkl", evaluator_options=opts)
