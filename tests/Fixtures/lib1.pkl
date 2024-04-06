@@ -1,4 +1,4 @@
-module pkl.swift.lib1
+module pkl.python.lib1
 
 abstract class Being {
   exists: Boolean = true

@@ -39,6 +39,8 @@ abstract function render(pythonModuleName: String?): String
 /// [pythonModuleName] is the full path of the package that this type appears in.
 abstract function renderGeneric(pythonModuleName: String?): String
 
+abstract function renderForwardSafe(pythonModuleName: String?): String
+
 /// Renders this type into source code.
 ///
 /// [namespaceName] is the full path of the package that this type appears in.
@@ -64,6 +66,10 @@ class Dictionary extends Type {
     let (renderedKey = key.render(withinNamespace))
     "Dict[\(renderedKey), \(elem.render(withinNamespace))]"
 
+  function renderForwardSafe(withinNamespace: String?) =
+    let (renderedKey = key.renderForwardSafe(withinNamespace))
+    "Dict[\(renderedKey), \(elem.render(withinNamespace))]"
+
   function renderGeneric(withinNamespace: String?) =
     "[\(key.renderGeneric(withinNamespace)): \(elem.renderGeneric(withinNamespace))]"
 
@@ -81,6 +87,8 @@ class Array extends Type {
   isAny = elem.isAny
 
   function render(withinNamespace: String?) = "List[\(elem.render(withinNamespace))]"
+
+  function renderForwardSafe(withinNamespace: String?) = "List[\(elem.renderForwardSafe(withinNamespace))]"
 
   function renderGeneric(withinNamespace: String?) = "List[\(elem.renderGeneric(withinNamespace))]"
 
@@ -100,6 +108,9 @@ class Nullable extends Type {
     else "Optional[\(elem.render(withinNamespace))]"
     */
     "Optional[\(elem.render(withinNamespace))]"
+
+  function renderForwardSafe(withinNamespace: String?) =
+    "Optional[\(elem.renderForwardSafe(withinNamespace))]"
 
   function renderGeneric(withinNamespace: String?) =
     let (rendered = elem.renderGeneric(withinNamespace))
@@ -121,6 +132,9 @@ class Tuple extends Type {
   function render(withinNamespace: String?) =
     "(" + members.toList().map((it) -> it.render(withinNamespace)).join(", ") + ")"
 
+  function renderForwardSafe(withinNamespace: String?) =
+    "(" + members.toList().map((it) -> it.renderForwardSafe(withinNamespace)).join(", ") + ")"
+
   function renderGeneric(withinNamespace: String?) =
     "(" + members.toList().map((it) -> it.renderGeneric(withinNamespace)).join(", ") + ")"
 
@@ -138,6 +152,9 @@ class Union extends Type {
   function render(withinNamespace: String?) =
     "Union[" + members.toList().map((it) -> it.render(withinNamespace)).join(", ") + "]"
 
+  function renderForwardSafe(withinNamespace: String?) =
+    "Union[" + members.toList().map((it) -> it.renderForwardSafe(withinNamespace)).join(", ") + "]"
+
   function renderGeneric(withinNamespace: String?) =
     "Union[" + members.toList().map((it) -> it.renderGeneric(withinNamespace)).join(", ") + "]"
 
@@ -154,6 +171,8 @@ class StringLiteral extends Type {
 
   function render(withinNamespace: String?) =
     "Literal[\"" + values.join("\", \"") + "\"]"
+
+  function renderForwardSafe(withinNamespace: String?) = render(withinNamespace)
 
   function renderGeneric(withinNamespace: String?) =
     "Literal[\"" + values.join("\", \"") + "\"]"
@@ -176,6 +195,11 @@ class Declared extends Type {
   /// The type arguments, if any.
   typeArguments: List<Type>?
 
+  isUserDefined: Boolean = false
+
+  function getUserDefined() =
+    ( this ) {isUserDefined = true}
+
   isAny = typeName == "AnyHashable"
     && pythonModuleName == null
     && namespaceName == null
@@ -197,15 +221,37 @@ class Declared extends Type {
     */
     if (namespaceName != null && withinNamespace != this.namespaceName)
       "\(namespaceName)_pkl.\(typeName)"
+    else if ( pythonModuleName != null )
+      "\(pythonModuleName).\(typeName)"
+    else
+      typeName
+
+  function renderBaseSafe(withinNamespace: String?) =
+    // Always qualify imported type names so we avoid conflicts.
+    /*
+    let (prefix = if (this.isPolymorphic) "any " else "")
+    prefix + if (namespaceName != null && withinNamespace != this.namespaceName)
+        "\(namespaceName).\(typeName)"
+    else typeName
+    */
+    if (namespaceName != null && withinNamespace != this.namespaceName)
+      "\(namespaceName)_pkl.\(typeName)"
+    else if ( pythonModuleName != null )
+      "\(pythonModuleName).\(typeName)"
+    else if ( isUserDefined )
+      "\"\(typeName)\""
     else
       typeName
 
   function renderTypeArguments(withinNamespace: String?) =
     if (typeArguments == null) ""
-    else "<" + typeArguments.map((t) -> t.render(withinNamespace)).join(", ") + ">"
+    else "[" + typeArguments.map((t) -> t.render(withinNamespace)).join(", ") + "]"
 
   function render(withinNamespace: String?) =
     renderBase(withinNamespace) + renderTypeArguments(withinNamespace)
+
+  function renderForwardSafe(withinNamespace: String?) =
+    renderBaseSafe(withinNamespace) + renderTypeArguments(withinNamespace)
 
   function renderBaseGeneric(withinNamespace: String?) =
     // Always qualify imported type names so we avoid conflicts.

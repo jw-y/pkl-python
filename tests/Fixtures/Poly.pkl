@@ -1,4 +1,4 @@
-module pkl.swift.example.Poly
+module pkl.python.example.Poly
 
 import "lib1.pkl"
 

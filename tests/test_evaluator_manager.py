@@ -10,5 +10,5 @@ def test_multiple():
     with EvaluatorManager(debug=True) as manager:
         opts = PreconfiguredOptions()
         evaluator = manager.new_evaluator(opts)
-        source = ModuleSource.from_path("./tests/with_log.pkl")
+        source = ModuleSource.from_path("./tests/pkls/with_log.pkl")
         evaluator.evaluate_module(source)
