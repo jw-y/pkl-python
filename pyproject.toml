@@ -50,9 +50,14 @@ repository = "pypi"
 [tool.black]
 line-length = 88
 target-version = ['py310']
+force-exclude = 'codegen/snippet-tests/output/'
 
 [tool.isort]
 profile = "black"
+skip = ["codegen/snippet-tests/output/*"]
+
+[tool.autoflake]
+exclude = ["codegen/snippet-tests/output/*"]
 
 [tool.pytest.ini_options]
 addopts = "-ra -q"

@@ -1,21 +1,29 @@
 # Code generated from Pkl module `Enums`. DO NOT EDIT.
 from __future__ import annotations
-from typing import Any, Dict, List, Literal, Optional, Set, Union
+
 from dataclasses import dataclass
+from typing import Any, Dict, List, Literal, Optional, Set, Union
+
 import pkl
 
 
 City = Literal["San Francisco", "London", "Zurich", "Cupertino"]
 
+
 Animal = Union["Horse", "Zebra", "Monkey"]
+
 
 DictOrArray = Union[Dict[str, str], List[str]]
 
+
 BugBug = Literal["bug bug", "bugBug"]
+
 
 HorseOrBug = Union["Horse", Literal["bug bug", "bugBug"]]
 
+
 MaybeHorseOrDefinitelyZebra = Union[Optional["Horse"], "Zebra"]
+
 
 @dataclass
 class Monkey:
@@ -23,11 +31,13 @@ class Monkey:
 
     _registered_identifier = "Enums#Monkey"
 
+
 @dataclass
 class Zebra:
     stripes: str
 
     _registered_identifier = "Enums#Zebra"
+
 
 @dataclass
 class Horse:
@@ -35,8 +45,9 @@ class Horse:
 
     _registered_identifier = "Enums#Horse"
 
+
 @dataclass
-class ModuleClass:
+class Enums:
     # City of tomorrow!
     city: City
 
@@ -57,5 +68,5 @@ class ModuleClass:
     def load_pkl(cls, source):
         # Load the Pkl module at the given source and evaluate it into `Enums.Module`.
         # - Parameter source: The source of the Pkl module.
-        config = pkl.load(source, parser=pkl.Parser(namespace = globals()))
+        config = pkl.load(source, parser=pkl.Parser(namespace=globals()))
         return config

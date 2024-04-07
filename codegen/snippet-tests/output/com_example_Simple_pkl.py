@@ -1,7 +1,9 @@
 # Code generated from Pkl module `com.example.Simple`. DO NOT EDIT.
 from __future__ import annotations
-from typing import Any, Dict, List, Literal, Optional, Set, Union
+
 from dataclasses import dataclass
+from typing import Any, Dict, List, Literal, Optional, Set, Union
+
 import pkl
 
 
@@ -21,11 +23,13 @@ class ClassWithReallyLongConstructor:
 
     _registered_identifier = "com.example.Simple#ClassWithReallyLongConstructor"
 
+
 @dataclass
 class OpenClassExtendingOpenClass:
     someOtherProp: Optional[bool]
 
     _registered_identifier = "com.example.Simple#OpenClassExtendingOpenClass"
+
 
 @dataclass
 class Person:
@@ -37,14 +41,16 @@ class Person:
 
     _registered_identifier = "com.example.Simple#Person"
 
+
 @dataclass
 class ThePerson(Person):
     the: str
 
     _registered_identifier = "com.example.Simple#ThePerson"
 
+
 @dataclass
-class ModuleClass:
+class Simple:
     # This is truly a person.
     person: Person
 
@@ -54,5 +60,5 @@ class ModuleClass:
     def load_pkl(cls, source):
         # Load the Pkl module at the given source and evaluate it into `com_example_Simple.Module`.
         # - Parameter source: The source of the Pkl module.
-        config = pkl.load(source, parser=pkl.Parser(namespace = globals()))
+        config = pkl.load(source, parser=pkl.Parser(namespace=globals()))
         return config
