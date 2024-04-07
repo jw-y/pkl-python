@@ -35,4 +35,3 @@ for file in "$DIRECTORY"/*.py; do
         echo "$MODULE encountered an error."
     fi
 done
-

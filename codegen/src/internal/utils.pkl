@@ -51,9 +51,9 @@ function toPythonName(source: reflect.Declaration): String =
   // Edge case: if we are generating a module class, always call it by it's module name.
   if (source is reflect.Class && source.enclosingDeclaration.moduleClass == source)
     let( moduleName = source.enclosingDeclaration.name )
-      //moduleName.split(".").last
+      moduleName.split(".").last
       // source.name //"Module"
-      moduleName.replaceAll(".").last
+      // moduleName.replaceAll(".", "_")
   else getPythonNameAnnotation(source) ?? normalizeName(source.name)
 
 function normalizeModuleName(name: String): String =

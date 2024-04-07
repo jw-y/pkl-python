@@ -29,8 +29,8 @@ print(config)
 * Code Generation: in development
 
 ### TODO
+* [x] (codgen) fix class order
 * [ ] (codgen) pip binary installation
-* [ ] (codgen) fix class order
 * [ ] (codgen) clean up code
 
 

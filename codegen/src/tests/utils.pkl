@@ -37,7 +37,7 @@ facts {
       """) == #"""
         """
           my multiline
-          
+
           string
           """
         """#
@@ -48,7 +48,7 @@ facts {
       """) == #"""
         """
           multiline string
-          
+
           with `backticks`
           """
         """#
