@@ -62,7 +62,6 @@ function gatherClasses(decl: List<reflect.TypeDeclaration>): Mixin<List<PythonMa
 local allMappings: List<PythonMapping> =
   let (clazz = reflect.Module(moduleToGenerate).moduleClass)
   let (declarations = gatherer.gatherTypeDeclarations(clazz, List()))
-    //gatherEnums(declarations) |> gatherClasses(declarations) |> gatherTypeAliases(declarations)
     List() |> gatherClasses(declarations) |> gatherTypeAliases(declarations)
 
 local packages = allMappings

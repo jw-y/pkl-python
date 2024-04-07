@@ -1,9 +1,7 @@
 # Code generated from Pkl module `AnyType`. DO NOT EDIT.
 from __future__ import annotations
-
-from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Set, Union
-
+from dataclasses import dataclass
 import pkl
 
 
@@ -13,9 +11,8 @@ class Bird:
 
     _registered_identifier = "AnyType#Bird"
 
-
 @dataclass
-class AnyType:
+class ModuleClass:
     bird: Any
 
     primitive: Any
@@ -40,5 +37,5 @@ class AnyType:
     def load_pkl(cls, source):
         # Load the Pkl module at the given source and evaluate it into `AnyType.Module`.
         # - Parameter source: The source of the Pkl module.
-        config = pkl.load(source, namespace=globals())
+        config = pkl.load(source, parser=pkl.Parser(namespace = globals()))
         return config

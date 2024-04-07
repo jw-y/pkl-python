@@ -1,11 +1,11 @@
 from pathlib import Path
-import pkl
-from tests.Fixtures.Generated.Classes_pkl import Classes, Animal
-from tests.Fixtures.Generated.Collections_pkl import Collections
-from tests.Fixtures.Generated.ApiTypes_pkl import ApiTypes
-from tests.Fixtures.Generated.ExtendedModule_pkl import ExtendedModule
-from tests.Fixtures.Generated.AnyType_pkl import AnyType, Bird
 
+import pkl
+from tests.Fixtures.Generated.AnyType_pkl import AnyType, Bird
+from tests.Fixtures.Generated.ApiTypes_pkl import ApiTypes
+from tests.Fixtures.Generated.Classes_pkl import Animal, Classes
+from tests.Fixtures.Generated.Collections_pkl import Collections
+from tests.Fixtures.Generated.ExtendedModule_pkl import ExtendedModule
 
 base_path = Path("./tests/Fixtures")
 
@@ -52,10 +52,10 @@ def test_evaluate_api_types():
 
 def test_polymorphic_types():
     from tests.Fixtures.Generated.pkl_python_example_Poly_pkl import (
-        Poly,
         Animal,
-        Dog,
         Bird,
+        Dog,
+        Poly,
     )
 
     result = Poly.load_pkl(base_path / "Poly.pkl")
@@ -95,20 +95,20 @@ def test_any_type():
         set={5, 6},
         mapping={"1": 12, 12: "1"},
         nullable=None,
-        duration=pkl.Duration(5, unit="min"),
-        dataSize=pkl.DataSize(10, unit="mb"),
+        duration=pkl.Duration(5.0, unit="min"),
+        dataSize=pkl.DataSize(10.0, unit="mb"),
     )
     assert result == expected
 
 
 def test_union_types():
     from tests.Fixtures.Generated.UnionTypes_pkl import (
-        UnionTypes,
-        Banana,
-        Grape,
         Apple,
-        Zebra,
+        Banana,
         Donkey,
+        Grape,
+        UnionTypes,
+        Zebra,
     )
 
     result = UnionTypes.load_pkl(base_path / "UnionTypes.pkl")

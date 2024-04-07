@@ -84,7 +84,7 @@ local function builtInType(typ: String): Type.Declared = new { typeName = typ }
 //anyType: Type.Nullable = new { elem = builtInType("Any") }
 anyType = builtInType("Any")
 
-local neverType: Type.Declared = builtInType("Never")
+local neverType: Type.Declared = builtInType("None")
 
 mappedTypes: Mapping<Class|TypeAlias, Type> = new {
   [Int] = new Type.Declared { typeName = "int" }
@@ -99,9 +99,10 @@ mappedTypes: Mapping<Class|TypeAlias, Type> = new {
   [Float] = new Type.Declared { typeName = "float" }
   [String] = new Type.Declared { typeName = "str" }
   [Boolean] = new Type.Declared { typeName = "bool" }
-  [Null] = new Type.Declared { typeName = "None"; typeArguments = List(neverType) }
+  //[Null] = new Type.Declared { typeName = "None"; typeArguments = List(neverType) }
+  [Null] = neverType
   [Any] = anyType
-  [Char] = new Type.Declared { typeName = "char" }
+  [Char] = new Type.Declared { typeName = "str" }
   [Duration] = new Type.Declared {
     pythonModuleName = "pkl"
     typeName = "Duration"

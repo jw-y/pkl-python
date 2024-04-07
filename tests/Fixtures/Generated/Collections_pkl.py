@@ -1,14 +1,12 @@
 # Code generated from Pkl module `Collections`. DO NOT EDIT.
 from __future__ import annotations
-
-from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Set, Union
-
+from dataclasses import dataclass
 import pkl
 
 
 @dataclass
-class Collections:
+class ModuleClass:
     res1: List[int]
 
     res2: List[int]
@@ -35,5 +33,5 @@ class Collections:
     def load_pkl(cls, source):
         # Load the Pkl module at the given source and evaluate it into `Collections.Module`.
         # - Parameter source: The source of the Pkl module.
-        config = pkl.load(source, namespace=globals())
+        config = pkl.load(source, parser=pkl.Parser(namespace = globals()))
         return config

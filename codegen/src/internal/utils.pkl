@@ -51,8 +51,9 @@ function toPythonName(source: reflect.Declaration): String =
   // Edge case: if we are generating a module class, always call it by it's module name.
   if (source is reflect.Class && source.enclosingDeclaration.moduleClass == source)
     let( moduleName = source.enclosingDeclaration.name )
-      moduleName.split(".").last
-    //source.name //"Module"
+      //moduleName.split(".").last
+      // source.name //"Module"
+      moduleName.replaceAll(".").last
   else getPythonNameAnnotation(source) ?? normalizeName(source.name)
 
 function normalizeModuleName(name: String): String =
@@ -122,7 +123,7 @@ function normalizeName(name: String) =
     let (parts = name.split(Regex(#"(?u)[^\p{L}\d_]"#)))
       parts.first + parts.drop(1).map((p) -> p.capitalize()).join("")
   */
-    let (parts = name.split(Regex(#"(?u)[^\p{L}\d_]"#)))
+    let (parts = name.split(Regex(#"(?u)[^\p{L}\d_]"#)).filter((it)-> it != ""))
       parts.join("_")
 
 function renderImports(imports: List<String>): String =
