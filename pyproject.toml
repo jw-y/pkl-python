@@ -18,9 +18,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "msgpack >= 1.0.8"
-    "black"
-    "isort"
+    "msgpack >= 1.0.8",
 ]
 
 [tool.setuptools.packages.find]

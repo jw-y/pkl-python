@@ -221,8 +221,11 @@ class Declared extends Type {
     */
     if (namespaceName != null && withinNamespace != this.namespaceName)
       "\(namespaceName)_pkl.\(typeName)"
+    /*
     else if ( pythonModuleName != null )
+      let(_ = trace(List(namespaceName, withinNamespace, pythonModuleName)))
       "\(pythonModuleName).\(typeName)"
+    */
     else
       typeName
 
@@ -236,8 +239,10 @@ class Declared extends Type {
     */
     if (namespaceName != null && withinNamespace != this.namespaceName)
       "\(namespaceName)_pkl.\(typeName)"
+    /*
     else if ( pythonModuleName != null )
       "\(pythonModuleName).\(typeName)"
+    */
     else if ( isUserDefined )
       "\"\(typeName)\""
     else

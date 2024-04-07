@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ===----------------------------------------------------------------------===//
-@python.Module { name = "SwiftExplicitName" }
+@python.Module { name = "PythonExplicitName" }
 @python.Name { value = "ExplicitlyCoolName" }
 module ExplicitName
 

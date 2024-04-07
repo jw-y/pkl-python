@@ -5,15 +5,15 @@ import tempfile
 from dataclasses import replace
 from pathlib import Path
 
-from black import FileMode, format_str
-import isort
-
 import pkl
 
+"""
+import isort
+from black import FileMode, format_str
 
 def format_code(code: str, line_length: int = 88) -> str:
-
     try:
+        code = remove_unused(code)
         code = isort.code(code)
         # Format the code using Black's format_str function
         formatted_code = format_str(code, mode=FileMode(line_length=line_length))
@@ -22,6 +22,7 @@ def format_code(code: str, line_length: int = 88) -> str:
         # Handle potential errors, e.g., syntax errors in the input code
         print(f"Error formatting code: {e}")
         return code  # Return the original code if formatting fails
+"""
 
 
 class GeneratorSettings:
@@ -69,7 +70,7 @@ def run_inner(settings, pkl_input_module, verbose=False):
             print("Written to:", fp)
         fp.parent.mkdir(exist_ok=True)
         with open(fp, "w", encoding="utf-8") as file:
-            contents = format_code(contents)
+            # contents = format_code(contents)
             file.write(contents)
 
 
