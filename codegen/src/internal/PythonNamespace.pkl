@@ -197,7 +197,7 @@ local convenienceLoaders = """
   def load_pkl(cls, source):
   \(module.indent)# Load the Pkl module at the given source and evaluate it into `\(namespaceName).Module`.
   \(module.indent)# - Parameter source: The source of the Pkl module.
-  \(module.indent)config = pkl.load(source, parser=pkl.Parser(namespace = globals()))
+  \(module.indent)config = pkl.load(source, parser=pkl.Parser(namespace=globals()))
   \(module.indent)return config
   """
 
@@ -205,18 +205,24 @@ contents = new Listing {
   utils.renderHeaderComment(`module`)
   """
   from __future__ import annotations
-  from typing import Any, Dict, List, Literal, Optional, Set, Union
+
   from dataclasses import dataclass
+  from typing import Any, Dict, List, Literal, Optional, Set, Union
+
   import pkl
+
   """
   when (topLevelContents.length > 0) {
     topLevelContents.join("\n")
+    ""
   }
-  ""
   ""
   for (gen in generatedSorted) {
     gen.contents
     ""
+    when (gen != generatedSorted.last){
+      ""
+    }
   }
   module.indent + convenienceLoaders.replaceAll(Regex("\n(?!\n)"), "\n\(module.indent)")
   /*
@@ -225,7 +231,7 @@ contents = new Listing {
     module.indent + convenienceLoaders.replaceAll(Regex("\n(?!\n)"), "\n\(module.indent)")
   }
   */
-}.join("\n")
+}.join("\n") + "\n"
 
 output {
   files {
