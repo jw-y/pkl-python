@@ -1,10 +1,9 @@
 # Code generated from Pkl module `UnionTypes`. DO NOT EDIT.
 from __future__ import annotations
-
-from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Set, Union
-
+from dataclasses import dataclass
 import pkl
+
 
 Fruit = Union["Banana", "Grape", "Apple"]
 
@@ -14,13 +13,11 @@ ZebraOrDonkey = Union["Zebra", "Donkey"]
 
 AnimalOrString = Union["Animal", str]
 
-
 @dataclass
 class Animal:
     name: str
 
     _registered_identifier = "UnionTypes#Animal"
-
 
 @dataclass
 class Donkey(Animal):
@@ -28,13 +25,11 @@ class Donkey(Animal):
 
     _registered_identifier = "UnionTypes#Donkey"
 
-
 @dataclass
 class Zebra(Animal):
     name: str
 
     _registered_identifier = "UnionTypes#Zebra"
-
 
 @dataclass
 class Apple:
@@ -42,13 +37,11 @@ class Apple:
 
     _registered_identifier = "UnionTypes#Apple"
 
-
 @dataclass
 class Grape:
     isUsedForWine: bool
 
     _registered_identifier = "UnionTypes#Grape"
-
 
 @dataclass
 class Banana:
@@ -56,9 +49,8 @@ class Banana:
 
     _registered_identifier = "UnionTypes#Banana"
 
-
 @dataclass
-class UnionTypes:
+class ModuleClass:
     fruit1: Fruit
 
     fruit2: Fruit
@@ -87,5 +79,5 @@ class UnionTypes:
     def load_pkl(cls, source):
         # Load the Pkl module at the given source and evaluate it into `UnionTypes.Module`.
         # - Parameter source: The source of the Pkl module.
-        config = pkl.load(source, namespace=globals())
+        config = pkl.load(source, parser=pkl.Parser(namespace = globals()))
         return config

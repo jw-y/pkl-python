@@ -113,15 +113,6 @@ local convenienceLoaders = """
   }
   """
 */
-local convenienceLoaders = """
-  @classmethod
-  def load_pkl(cls, source):
-  \(module.indent)# Load the Pkl module at the given source and evaluate it into `\(namespaceName).Module`.
-  \(module.indent)# - Parameter source: The source of the Pkl module.
-  \(module.indent)config = pkl.load(source, namespace = globals())
-  \(module.indent)return config
-  """
-
 local function isTypeAlias(clazz, type) =
   if (type is reflect.UnionType)
     type.members.any((it) -> isTypeAlias(clazz, it) )
@@ -201,6 +192,14 @@ local classComparator = (a: Gen, b: Gen) ->
 
 local generatedSorted = generated.sortWith(classComparator)
 
+local convenienceLoaders = """
+  @classmethod
+  def load_pkl(cls, source):
+  \(module.indent)# Load the Pkl module at the given source and evaluate it into `\(namespaceName).Module`.
+  \(module.indent)# - Parameter source: The source of the Pkl module.
+  \(module.indent)config = pkl.load(source, parser=pkl.Parser(namespace = globals()))
+  \(module.indent)return config
+  """
 
 contents = new Listing {
   utils.renderHeaderComment(`module`)

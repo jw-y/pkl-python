@@ -20,35 +20,35 @@ import "../internal/utils.pkl"
 facts {
   ["normalizeName"] {
     utils.normalizeName("foo") == "foo"
-    utils.normalizeName("foo foo") == "fooFoo"
-    utils.normalizeName("1 foo") == "1Foo"
-    utils.normalizeName("bar ` $$ 你好 baz") == "bar你好Baz"
-    utils.normalizeName("Swift111") == "Swift111"
+    utils.normalizeName("foo foo") == "foo_foo"
+    utils.normalizeName("1 foo") == "1_foo"
+    utils.normalizeName("bar ` $$ 你好 baz") == "bar_你好_baz"
+    utils.normalizeName("Python111") == "Python111"
     utils.normalizeName("snake_case") == "snake_case"
   }
-  ["toSwiftString"] {
-    utils.toSwiftString("foo") == #""foo""#
-    utils.toSwiftString("你好") == #""你好""#
-    utils.toSwiftString(#"pkl:"name""#) == ##"#"pkl:"name""#"##
-    utils.toSwiftString("""
+  ["toPythonString"] {
+    utils.toPythonString("foo") == #""foo""#
+    utils.toPythonString("你好") == #""你好""#
+    utils.toPythonString(#"pkl:"name""#) == ##"#"pkl:"name""#"##
+    utils.toPythonString("""
       my multiline
 
       string
       """) == #"""
         """
           my multiline
-
+          
           string
           """
         """#
-    utils.toSwiftString("""
+    utils.toPythonString("""
       multiline string
 
       with `backticks`
       """) == #"""
         """
           multiline string
-
+          
           with `backticks`
           """
         """#
