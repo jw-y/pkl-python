@@ -84,9 +84,9 @@ class Class extends PythonMapping {
     name = self.name
     clazz = self.clazz
     type = new Type.Declared {
+      typeName = name
       namespaceName = self.namespaceName
       pythonModuleName = self.pythonModuleName
-      typeName = name
     }
   }
 }
