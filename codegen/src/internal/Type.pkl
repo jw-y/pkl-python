@@ -221,10 +221,12 @@ class Declared extends Type {
     */
     if (namespaceName != null && withinNamespace != this.namespaceName)
       "\(namespaceName)_pkl.\(typeName)"
-    else if ( pythonModuleName != null )
-      "\(pythonModuleName).\(typeName)"
     else
       typeName
+    /*
+    else if ( pythonModuleName != null )
+      "\(pythonModuleName).\(typeName)"
+    */
 
   function renderBaseSafe(withinNamespace: String?) =
     // Always qualify imported type names so we avoid conflicts.
@@ -236,12 +238,14 @@ class Declared extends Type {
     */
     if (namespaceName != null && withinNamespace != this.namespaceName)
       "\(namespaceName)_pkl.\(typeName)"
-    else if ( pythonModuleName != null )
-      "\(pythonModuleName).\(typeName)"
     else if ( isUserDefined )
       "\"\(typeName)\""
     else
       typeName
+    /*
+    else if ( pythonModuleName != null )
+      "\(pythonModuleName).\(typeName)"
+    */
 
   function renderTypeArguments(withinNamespace: String?) =
     if (typeArguments == null) ""

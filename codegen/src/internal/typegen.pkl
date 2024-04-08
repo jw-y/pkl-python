@@ -104,24 +104,24 @@ mappedTypes: Mapping<Class|TypeAlias, Type> = new {
   [Any] = anyType
   [Char] = new Type.Declared { typeName = "str" }
   [Duration] = new Type.Declared {
-    pythonModuleName = "pkl"
-    typeName = "Duration"
+    //pythonModuleName = "pkl"
+    typeName = "pkl.Duration"
   }
   [DurationUnit] = new Type.Declared {
-    pythonModuleName = "pkl"
-    typeName = "DurationUnit"
+    //pythonModuleName = "pkl"
+    typeName = "pkl.DurationUnit"
   }
   [Dynamic] = new Type.Declared {
-    pythonModuleName = "pkl"
-    typeName = "Object"
+    //pythonModuleName = "pkl"
+    typeName = "pkl.Object"
   }
   [DataSize] = new Type.Declared {
-    pythonModuleName = "pkl"
-    typeName = "DataSize"
+    //pythonModuleName = "pkl"
+    typeName = "pkl.DataSize"
   }
   [DataSizeUnit] = new Type.Declared {
-    pythonModuleName = "pkl"
-    typeName = "DataSizeUnit"
+    //pythonModuleName = "pkl"
+    typeName = "pkl.DataSizeUnit"
   }
 }
 
@@ -157,8 +157,8 @@ mappedHigherOrderTypes: Mapping<Class|TypeAlias, (reflect.DeclaredType, reflect.
         )
       }
   [Pair] = (type, enclosing, seenMappings) -> new Type.Declared {
-    typeName = "Pair"
-    pythonModuleName = "pkl"
+    typeName = "pkl.Pair"
+    //pythonModuleName = "pkl"
     local typeArgKey = type.typeArguments.getOrNull(0)
     local typeArgValue = type.typeArguments.getOrNull(1)
     typeArguments = List(
