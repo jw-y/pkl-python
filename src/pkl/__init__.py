@@ -34,6 +34,21 @@ def _search_project_dir(module_path: str) -> str:
     return str(cur_path.absolute())
 
 
+def _parse_module_uri(module_uri, module_text):
+    parsed = urlparse(str(module_uri))
+
+    def is_uri(_uri: ParseResult):
+        return bool(_uri.scheme) and (bool(_uri.netloc) or bool(_uri.path))
+
+    if module_text:
+        source = ModuleSource.from_text(module_text)
+    elif is_uri(parsed):
+        source = ModuleSource.from_uri(module_uri)
+    else:
+        source = ModuleSource.from_path(module_uri)
+    return source
+
+
 def load(
     module_uri: Union[str, Path],
     *,
@@ -71,17 +86,7 @@ def load(
     environmental configurations, and support for complex project dependencies.
     """
 
-    parsed = urlparse(str(module_uri))
-
-    def is_uri(_uri: ParseResult):
-        return bool(_uri.scheme) and (bool(_uri.netloc) or bool(_uri.path))
-
-    if module_text:
-        source = ModuleSource.from_text(module_text)
-    elif is_uri(parsed):
-        source = ModuleSource.from_uri(module_uri)
-    else:
-        source = ModuleSource.from_path(module_uri)
+    source = _parse_module_uri(module_uri, module_text)
 
     if project_dir is PKL_DEFAULT:
         project_dir = _search_project_dir(str(module_uri))
