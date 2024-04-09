@@ -4,6 +4,7 @@ import tempfile
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import List, Optional
+from urllib.parse import ParseResult, urlparse
 
 import pkl
 
@@ -58,7 +59,17 @@ class GeneratorSettings:
 
 def python_generator(evaluator, settings: GeneratorSettings, pkl_input_module):
     output_path = Path(settings.outputPath or ".out")
-    gen_script_path = Path(settings.generateScript).absolute()
+
+    parsed = urlparse(str(settings.generateScript))
+
+    def is_uri(_uri: ParseResult):
+        return bool(_uri.scheme) and (bool(_uri.netloc) or bool(_uri.path))
+
+    if is_uri(parsed):
+        gen_script_path = pkl.ModuleSource.from_uri(settings.generateScript).uri
+    else:
+        gen_script_path = pkl.ModuleSource.from_path(settings.generateScript).uri
+
     pkl_input_module = Path(pkl_input_module).absolute()
 
     module_to_evaluate = f"""\
@@ -115,7 +126,8 @@ def build_generator_settings(args):
 
     if generator_settings.generateScript is None:
         VERSION = pkl.__version__
-        uri = f"package://github.com/jw-y/pkl-python/blob/main/codegen/package/pkl.python@{VERSION}#/Generator.pkl"
+        PACKAGE_PATH = f"github.com/jw-y/pkl-python/releases/download/v0.1.11-alpha/pkl.python@{VERSION}"
+        uri = f"package://{PACKAGE_PATH}#/Generator.pkl"
         generator_settings = replace(generator_settings, generateScript=uri)
     return generator_settings
 
