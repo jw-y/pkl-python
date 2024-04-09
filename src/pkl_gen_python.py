@@ -127,7 +127,10 @@ def build_generator_settings(args):
 
     if generator_settings.generateScript is None:
         VERSION = pkl.__version__
-        PACKAGE_PATH = f"github.com/jw-y/pkl-python/releases/download/v0.1.11-alpha/pkl.python@{VERSION}"
+        TAG = f"v{VERSION}"
+        PACKAGE_PATH = (
+            f"github.com/jw-y/pkl-python/releases/download/{TAG}/pkl.python@{VERSION}"
+        )
         uri = f"package://{PACKAGE_PATH}#/Generator.pkl"
         generator_settings = replace(generator_settings, generateScript=uri)
     return generator_settings

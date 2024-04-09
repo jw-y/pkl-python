@@ -40,9 +40,9 @@ dev = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/jw-y/pkl"
-"Bug Reports" = "https://github.com/jw-y/pkl/issues"
-"Source" = "https://github.com/jw-y/pkl"
+"Homepage" = "https://github.com/jw-y/pkl-python"
+"Bug Reports" = "https://github.com/jw-y/pkl-python/issues"
+"Source" = "https://github.com/jw-y/pkl-python"
 
 [project.scripts]
 pkl-gen-python = "pkl_gen_python:main"

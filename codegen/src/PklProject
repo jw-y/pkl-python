@@ -1,12 +1,14 @@
 amends "pkl:Project"
 
 local github_base = "github.com/jw-y/pkl-python"
+local github_version = read("../../src/pkl/VERSION").text.trim()
+local github_tag = "v\(github_version)"
 
 package {
   name = "pkl.python"
   baseUri = "package://\(github_base)/\(name)"
-  packageZipUrl = "https://\(github_base)/releases/download/v0.1.11-alpha/\(name)@\(version).zip"
-  version = read("../../src/pkl/VERSION").text.trim()
+  packageZipUrl = "https://\(github_base)/releases/download/\(github_tag)/\(name)@\(version).zip"
+  version = github_version
   authors {
     "Jungwoo Yang <jwyang0213@gmail.com>"
   }
