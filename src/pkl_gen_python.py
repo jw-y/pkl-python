@@ -1,6 +1,7 @@
 import argparse
 import sys
 import tempfile
+import warnings
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import List, Optional
@@ -172,7 +173,12 @@ def main():
     with pkl.EvaluatorManager() as manager:
         for pkl_input_module in generator_settings.inputs or []:
             evaluator = manager.new_evaluator(pkl.PreconfiguredOptions())
-            python_generator(evaluator, generator_settings, pkl_input_module)
+            try:
+                python_generator(evaluator, generator_settings, pkl_input_module)
+            except pkl.PklError as e:
+                warnings.warn(f"Failed to generate: {pkl_input_module}")
+                warnings.warn(str(e))
+                sys.exit(1)
 
 
 if __name__ == "__main__":

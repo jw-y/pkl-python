@@ -20,6 +20,7 @@ module pkl.python.internal.typegen
 import "pkl:reflect"
 import "Type.pkl"
 import "PythonMapping.pkl"
+import "utils.pkl"
 
 function generateType(
   type: reflect.Type,
@@ -77,6 +78,11 @@ function generateDeclaredType(
         mappedHigherOrderTypes.getOrNull(reflectee)?.apply(type, enclosing, seenMappings) ??
           if (referent is reflect.TypeAlias)
             generateType(referent.referent, enclosing, seenMappings)
+          /*
+          else if ( utils.isModuleClass(referent) )
+            let (moduleClass = enclosing.enclosingDeclaration.moduleClass)
+              generateType(reflect.DeclaredType(moduleClass), moduleClass, seenMappings)
+          */
           else throw("Cannot generate type \(type.referent.name) as Python.")
 
 local function builtInType(typ: String): Type.Declared = new { typeName = typ }

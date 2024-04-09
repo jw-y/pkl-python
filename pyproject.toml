@@ -23,10 +23,9 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
-#include = ["pkl", "pkl_gen_python.py"]
 
 [tool.setuptools.dynamic]
-version = {file = "pkl/VERSION"}
+version = {file = "src/pkl/VERSION"}
 
 [project.optional-dependencies]
 dev = [

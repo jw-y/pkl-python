@@ -136,6 +136,8 @@ function getProperties(
         let (superProp = superProperties.findOrNull((it) -> it.name == prop.name))
           // don't render hidden members
           if (prop.modifiers.contains("hidden")) false
+          else true
+          /*
           // Okay if there is no property override, or if the super property has the same type.
           else if (superProp == null || isSameType(superProp.type, prop.type)) true
           // Okay if the property is overridden but does not define a type, but don't render as its own field.
@@ -149,6 +151,7 @@ function getProperties(
 
               \(prop.location.displayUri)
               """)
+          */
       )
       .mapValues((_, prop: reflect.Property) ->
         let (superProp = superFields.getOrNull(prop.name))
