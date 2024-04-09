@@ -6,7 +6,7 @@ package {
   name = "pkl.python"
   baseUri = "package://\(github_base)/\(name)"
   packageZipUrl = "https://\(github_base)/releases/download/\(name)@\(version)/\(name)@\(version).zip"
-  version = read("../../pkl/VERSION").text
+  version = read("../../src/pkl/VERSION").text.trim()
   authors {
     "Jungwoo Yang <jwyang0213@gmail.com>"
   }
