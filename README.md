@@ -21,20 +21,25 @@ Here's how you can start using `pkl-python` to load a PKL module:
 import pkl
 
 config = pkl.load("path/to/pkl/example_module.pkl")
-print(config)
+```
+
+### Code Generation
+As Python is a dynamic language, codegen is not strictly necessary.
+However, codegen lets you expect contents of pkl files within Python modules.
+
+```
+pkl-gen-python path/to/pkl/example_module.pkl
 ```
 
 ### Status
-* Evaluator API: fully functional
-* Code Generation: in development
+* Evaluator API: functional
+* Code Generation: functional, but needs refining
 
 ### TODO
-* [x] (codgen) fix class order
-* [ ] (codgen) pip binary installation
+* [x] (codgen) pip binary installation
+* [ ] (codgen) gatherer depth-first ordering
 * [ ] (codgen) clean up code
 
-
-## Usage
 
 ## Advanced Features
 For details on the parameters, refer [Message Passing API](https://pkl-lang.org/main/current/bindings-specification/message-passing-api.html).
