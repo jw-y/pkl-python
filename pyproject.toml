@@ -22,7 +22,8 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["pkl"]
+where = ["src"]
+#include = ["pkl", "pkl_gen_python.py"]
 
 [tool.setuptools.dynamic]
 version = {file = "pkl/VERSION"}
@@ -43,6 +44,9 @@ dev = [
 "Homepage" = "https://github.com/jw-y/pkl"
 "Bug Reports" = "https://github.com/jw-y/pkl/issues"
 "Source" = "https://github.com/jw-y/pkl"
+
+[project.scripts]
+pkl-gen-python = "pkl_gen_python:main"
 
 [tool.twine]
 repository = "pypi"
