@@ -21,8 +21,8 @@ dependencies = [
     "msgpack >= 1.0.8",
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.setuptools]
+package-dir = {"" = "src"}
 
 [tool.setuptools.dynamic]
 version = {file = "src/pkl/VERSION"}
