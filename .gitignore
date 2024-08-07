@@ -5,3 +5,5 @@ build/
 *.egg-info/
 .coverage/
 .out/
+
+src/pkl/bin/*
