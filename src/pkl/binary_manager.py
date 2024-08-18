@@ -53,12 +53,13 @@ class BinaryManager:
             raise Exception("Something went wrong")
 
     @cache
-    def get_latest_pkl_release_url(self):
+    def get_latest_pkl_release_urls(self):
         url = "https://api.github.com/repos/apple/pkl/releases/latest"
         response = requests.get(url)
         release = response.json()
-        html_url = release["html_url"]
-        return html_url
+        assets = release["assets"]
+        urls = {a["name"]: a["browser_download_url"] for a in assets}
+        return urls
 
     def is_command_available(self):
         """
@@ -88,7 +89,7 @@ class BinaryManager:
         return self._download_and_save_binary(binary_url, binary_dir)
 
     def get_binary_filepath(self):
-        return self.binary_path
+        return str(self.binary_path)
 
     def detect_system(self):
         def is_alpine_linux():
@@ -120,8 +121,8 @@ class BinaryManager:
             raise OSError(
                 f"No compatible binary found for your system: {os_name}, {arch}"
             )
-        latest_url = self.get_latest_pkl_release_url()
-        url = latest_url + "/" + bin_name
+        name_to_url_map = self.get_latest_pkl_release_urls()
+        url = name_to_url_map[bin_name]
         return url
 
     @classmethod
@@ -162,6 +163,12 @@ class BinaryManager:
         print(f"Successfully installed {binary_fp}")
         os.chmod(binary_fp, os.stat(binary_fp).st_mode | stat.S_IXUSR)
         return binary_fp
+
+    def check(self):
+        cmd = [self.binary_path, "-v"]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        stdout = result.stdout
+        return stdout
 
 
 def main():
