@@ -76,7 +76,7 @@ opts = PreconfiguredOptions(
     moduleReaders=[TestModuleReader("customfs", True, True, True)]
 )
 opts.allowedModules.append("customfs:")
-config = pkl.load("./tests/myModule.pkl", evaluator_options=opts)
+config = pkl.load("./tests/pkls/myModule.pkl", evaluator_options=opts)
 ```
 
 ## Appendix
