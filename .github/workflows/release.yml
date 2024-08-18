@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Package pkl
+        run: make package
+
+      - name: Get version from Makefile
+        id: get_version
+        run: |
+          VERSION=$(make version)
+          echo "VERSION=$VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Extract version from tag
+        id: extract_tag_version
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
+
+      - name: Compare versions
+        run: |
+          if [ "$TAG_VERSION" != "$VERSION" ]; then
+            echo "Error: The tag version ($TAG_VERSION) does not match the Makefile version ($VERSION)"
+            exit 1
+          fi
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: "Release v${{ env.VERSION }}"
+          files: |
+            output/pkl.python@${{ env.VERSION }}
+            output/pkl.python@${{ env.VERSION }}.zip
+            output/pkl.python@${{ env.VERSION }}.sha256
+            output/pkl.python@${{ env.VERSION }}.zip.sha256
