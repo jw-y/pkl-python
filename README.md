@@ -21,6 +21,7 @@ Here's how you can start using `pkl-python` to load a PKL module:
 import pkl
 
 config = pkl.load("path/to/pkl/example_module.pkl")
+config = pkl.loads("a: Int = 1 + 1")
 ```
 
 ### Code Generation
@@ -31,10 +32,6 @@ However, codegen lets you expect contents of pkl files within Python modules.
 pkl-gen-python path/to/pkl/example_module.pkl
 ```
 
-### Status
-* Evaluator API: functional
-* Code Generation: functional, but needs refining
-
 ### TODO
 * [x] (codgen) pip binary installation
 * [ ] (codgen) gatherer depth-first ordering
@@ -42,7 +39,6 @@ pkl-gen-python path/to/pkl/example_module.pkl
 
 
 ## Advanced Features
-For details on the parameters, refer [Message Passing API](https://pkl-lang.org/main/current/bindings-specification/message-passing-api.html).
 
 ```python
 import pkl
@@ -52,6 +48,11 @@ config = pkl.load("./tests/types.pkl", expr="datasize")
 config = pkl.load(None, module_text="a: Int = 1 + 1")
 config = pkl.load("./tests/types.pkl", debug=True)
 ```
+
+### `pkl.load` Parameters Detail
+For details on the parameters, refer
+* [`pkl eval`](https://pkl-lang.org/main/current/pkl-cli/index.html#command-eval)
+* [Message Passing API](https://pkl-lang.org/main/current/bindings-specification/message-passing-api.html).
 
 ### Custom Readers
 It is possible to add module or resource or module readers:

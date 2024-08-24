@@ -14,23 +14,15 @@ with open(os.path.join(os.path.dirname(__file__), "VERSION"), "r") as _f:
     __version__ = _f.read().strip()
 
 
-class PklDefaultType:
-    def __repr__(self):
-        return "<PklDefault>"
-
-
-PKL_DEFAULT = PklDefaultType()
-
-
 def _search_project_dir(module_path: str) -> str:
     cur_path = Path(module_path).parent.absolute()
-    while not (cur_path / "PklProject").exists():
-        cur_path = cur_path.parent
-        if str(cur_path) == "/":
-            break
+    root_path = cur_path.root
 
-    if str(cur_path) == "/":
-        cur_path = Path(module_path).parent
+    while not (cur_path / "PklProject").exists():
+        if cur_path == cur_path.parent or cur_path == root_path:
+            break
+        cur_path = cur_path.parent
+
     return str(cur_path.absolute())
 
 
@@ -54,7 +46,7 @@ def load(
     *,
     module_text: Optional[str] = None,
     expr: Optional[str] = None,
-    project_dir: str = PKL_DEFAULT,
+    project_dir: Optional[str] = None,
     evaluator_options: EvaluatorOptions = PreconfiguredOptions(),
     parser=None,
     debug=False,
@@ -69,7 +61,7 @@ def load(
             If None, the module is loaded from the specified URI.
         expr (Optional[str], None): Optionally, a Pkl expression to be evaluated
             within the loaded module. If None, the entire module is evaluated.
-        project_dir (str, PKL_DEFAULT): The project directory to use for this command.
+        project_dir (Optional[str], None): The project directory to use for this command.
             By default, searches up from the working directory for a PklProject file.
         evaluator_options (EvaluatorOptions, PreconfiguredOptions()):
             extra options for evaluator
@@ -88,7 +80,7 @@ def load(
 
     source = _parse_module_uri(module_uri, module_text)
 
-    if project_dir is PKL_DEFAULT:
+    if project_dir is None:
         project_dir = _search_project_dir(str(module_uri))
 
     with EvaluatorManager(debug=debug) as manager:
