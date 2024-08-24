@@ -94,8 +94,36 @@ def load(
     return config
 
 
+def loads(
+    module_text: Optional[str],
+    *,
+    expr: Optional[str] = None,
+    project_dir: Optional[str] = None,
+    evaluator_options: EvaluatorOptions = PreconfiguredOptions(),
+    parser=None,
+    debug=False,
+    **kwargs,
+):
+    """
+    This function is a specialized version of `load` that defaults `module_uri` to None.
+
+    {load.__doc__}
+    """
+    return load(
+        module_uri=None,
+        module_text=module_text,
+        expr=expr,
+        project_dir=project_dir,
+        evaluator_options=evaluator_options,
+        parser=parser,
+        debug=debug,
+        **kwargs,
+    )
+
+
 __all__ = [
     "load",
+    "loads",
     "Evaluator",
     "EvaluatorManager",
     "EvaluatorOptions",
