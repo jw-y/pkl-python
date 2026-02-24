@@ -19,6 +19,7 @@ classifiers = [
 ]
 dependencies = [
     "msgpack >= 1.0.8",
+    "requests >= 2.31.0",
 ]
 
 [tool.setuptools]
