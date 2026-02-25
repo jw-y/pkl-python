@@ -1,12 +1,10 @@
 import argparse
-import ast
 import sys
 import tempfile
 import warnings
-from collections import defaultdict
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import List, Optional
 from urllib.parse import ParseResult, urlparse
 
 import pkl
@@ -27,167 +25,6 @@ def format_code(code: str, line_length: int = 88) -> str:
         print(f"Error formatting code: {e}")
         return code  # Return the original code if formatting fails
 """
-
-
-def topological_sort(graph: Dict[str, Set[str]], all_nodes: Set[str]) -> List[str]:
-    """
-    Perform topological sort on a dependency graph.
-    
-    Args:
-        graph: Dict mapping node -> set of nodes it depends on (base classes)
-        all_nodes: Set of all nodes to include in the sort
-    
-    Returns:
-        List of nodes in topologically sorted order (dependencies first)
-    """
-    # Calculate in-degree (number of dependencies) for each node
-    in_degree = defaultdict(int)
-    reverse_graph = defaultdict(set)  # node -> nodes that depend on it
-    
-    for node in all_nodes:
-        if node not in in_degree:
-            in_degree[node] = 0
-    
-    for node, deps in graph.items():
-        for dep in deps:
-            if dep in all_nodes:  # Only count dependencies within our set
-                in_degree[node] += 1
-                reverse_graph[dep].add(node)
-    
-    # Start with nodes that have no dependencies
-    queue = [node for node in all_nodes if in_degree[node] == 0]
-    result = []
-    
-    while queue:
-        # Sort to ensure deterministic output
-        queue.sort()
-        node = queue.pop(0)
-        result.append(node)
-        
-        for dependent in reverse_graph[node]:
-            in_degree[dependent] -= 1
-            if in_degree[dependent] == 0:
-                queue.append(dependent)
-    
-    # If we couldn't sort all nodes, there's a cycle - return original order
-    if len(result) != len(all_nodes):
-        warnings.warn("Circular dependency detected in class hierarchy, keeping original order")
-        return list(all_nodes)
-    
-    return result
-
-
-def extract_class_info(code: str) -> Tuple[List[Tuple[str, int, int, Set[str]]], str, str]:
-    """
-    Extract class definitions from Python code.
-    
-    Returns:
-        Tuple of:
-        - List of (class_name, start_line, end_line, base_classes)
-        - Code before first class
-        - Code after last class (if any trailing content)
-    """
-    try:
-        tree = ast.parse(code)
-    except SyntaxError:
-        return [], code, ""
-    
-    lines = code.split('\n')
-    classes = []
-    
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef):
-            class_name = node.name
-            start_line = node.lineno - 1  # 0-indexed
-            
-            # Find end line (last line of the class body)
-            end_line = start_line
-            for child in ast.walk(node):
-                if hasattr(child, 'lineno'):
-                    end_line = max(end_line, child.lineno - 1)
-                if hasattr(child, 'end_lineno') and child.end_lineno:
-                    end_line = max(end_line, child.end_lineno - 1)
-            
-            # Extract base class names
-            base_classes = set()
-            for base in node.bases:
-                if isinstance(base, ast.Name):
-                    base_classes.add(base.id)
-                elif isinstance(base, ast.Attribute):
-                    # For qualified names like module.ClassName, just use the attribute
-                    base_classes.add(base.attr)
-            
-            classes.append((class_name, start_line, end_line, base_classes))
-    
-    if not classes:
-        return [], code, ""
-    
-    # Sort by start line
-    classes.sort(key=lambda x: x[1])
-    
-    # Extract code before first class
-    first_class_start = classes[0][1]
-    prefix = '\n'.join(lines[:first_class_start])
-    
-    # Extract any trailing code after last class
-    last_class_end = classes[-1][2]
-    suffix = '\n'.join(lines[last_class_end + 1:]) if last_class_end + 1 < len(lines) else ""
-    
-    return classes, prefix, suffix
-
-
-def reorder_classes(code: str) -> str:
-    """
-    Reorder class definitions in Python code so that base classes are defined
-    before their subclasses.
-    
-    Args:
-        code: Python source code string
-        
-    Returns:
-        Reordered Python source code
-    """
-    classes, prefix, suffix = extract_class_info(code)
-    
-    if not classes:
-        return code
-    
-    lines = code.split('\n')
-    
-    # Build dependency graph: class -> set of base classes it depends on
-    class_names = {c[0] for c in classes}
-    dependency_graph = {}
-    class_code = {}
-    
-    for class_name, start_line, end_line, base_classes in classes:
-        # Only track dependencies on classes defined in this file
-        local_deps = base_classes & class_names
-        dependency_graph[class_name] = local_deps
-        # Store the code for this class (including any blank lines/decorators before it)
-        class_code[class_name] = '\n'.join(lines[start_line:end_line + 1])
-    
-    # Topologically sort classes
-    sorted_classes = topological_sort(dependency_graph, class_names)
-    
-    # Check if reordering is needed
-    original_order = [c[0] for c in classes]
-    if sorted_classes == original_order:
-        return code  # No reordering needed
-    
-    # Rebuild the code
-    reordered_parts = [prefix.rstrip()]
-    
-    for class_name in sorted_classes:
-        if reordered_parts[-1]:  # Add blank lines between classes
-            reordered_parts.append('')
-            reordered_parts.append('')
-        reordered_parts.append(class_code[class_name])
-    
-    if suffix.strip():
-        reordered_parts.append('')
-        reordered_parts.append(suffix)
-    
-    return '\n'.join(reordered_parts)
 
 
 @dataclass
@@ -256,10 +93,6 @@ def python_generator(evaluator, settings: GeneratorSettings, pkl_input_module):
         if settings.dryRun:
             continue
         fp.parent.mkdir(exist_ok=True)
-        
-        # Reorder classes to ensure base classes are defined before subclasses
-        contents = reorder_classes(contents)
-        
         with open(fp, "w", encoding="utf-8") as file:
             # contents = format_code(contents)
             file.write(contents)
