@@ -139,13 +139,19 @@ class Parser:
             return type(obj)(self.handle_type(v) for v in obj)
         return obj
 
-    def get_dataclass_class(self, class_name: str, keys: List[str]):
-        if class_name not in self.dataclass_cache:
+    def get_dataclass_class(self, class_name: str, keys: List[str], no_cache: bool = False):
+        """Return a dataclass for the given name and keys. When no_cache is True (e.g. for
+        Pkl's built-in Dynamic type), skip cache so each distinct key set gets its own class.
+        Fixes https://github.com/jw-y/pkl-python/issues/11
+        """
+        if no_cache or class_name not in self.dataclass_cache:
             dynamic_class = make_dataclass(class_name, keys)
             dynamic_class.__module__ = _lookup_module.__name__
             setattr(_lookup_module, class_name, dynamic_class)
-            self.dataclass_cache[class_name] = dynamic_class
-        dynamic_class = self.dataclass_cache[class_name]
+            if not no_cache:
+                self.dataclass_cache[class_name] = dynamic_class
+        else:
+            dynamic_class = self.dataclass_cache[class_name]
         return dynamic_class
 
     def parse_typed_dynamic(self, obj):
@@ -173,7 +179,9 @@ class Parser:
                 raise ValueError(f"'namespace' provided but '{class_name}' not found")
             clazz = self.namespace[class_name]
         else:
-            clazz = self.get_dataclass_class(class_name, members.keys())
+            # Don't cache by name alone for Dynamic: different instances can have different members
+            no_cache = class_name == "Dynamic"
+            clazz = self.get_dataclass_class(class_name, members.keys(), no_cache=no_cache)
         res = clazz(*members.values())
         return res
 
