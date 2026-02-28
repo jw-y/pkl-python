@@ -33,7 +33,7 @@ def remove_pkl_binary():
 def test_latest_release():
     manager = BinaryManager()
     urls = manager.get_latest_pkl_release_urls()
-    assert len(urls) == 7
+    assert len(urls) == 16
 
 
 def test_without_download_binary():

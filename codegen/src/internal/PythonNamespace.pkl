@@ -178,19 +178,58 @@ local classComparator = (a: Gen, b: Gen) ->
     true
 */
 
-local classComparator = (a: Gen, b: Gen) ->
-  if ( b is TypeAliasGen )
-    false
-  else if ( a is TypeAliasGen )
-    true
-  else if ( a.clazz.isSubclassOf(b.clazz) )
-    false // `a` is subclass of `b`
-  else if ( utils.isModuleClass(a.clazz) && !(utils.isModuleClass(b.clazz)) )
-    false // `a` should come last
+/// Topological sort for class generators to ensure base classes come before derived classes.
+/// This fixes https://github.com/jw-y/pkl-python/issues/9
+///
+/// The algorithm:
+/// 1. Separate TypeAliasGen (no inheritance) from ClassGen
+/// 2. Find ClassGen items whose superclass is not in the local set (no local dependency)
+/// 3. Add those to result, remove from remaining, repeat until empty
+local function topologicalSortClasses(
+  remaining: List<ClassGen>,
+  allLocalClasses: List<reflect.Class>,
+  result: List<ClassGen>
+): List<ClassGen> =
+  if (remaining.isEmpty)
+    result
   else
-    true
+    // Find classes that have no local dependencies
+    // A class has no local dependency if:
+    // - It has no superclass, OR
+    // - Its superclass is not in our local set of classes, OR
+    // - Its superclass is already in the result
+    let (resultClasses = result.map((g) -> g.clazz))
+    let (noDeps = remaining.filter((g) ->
+      let (superclass = g.clazz.superclass)
+        superclass == null
+        || !allLocalClasses.contains(superclass)
+        || resultClasses.contains(superclass)
+    ))
+    // If no progress can be made, there might be a cycle - just append remaining
+    if (noDeps.isEmpty)
+      result + remaining
+    else
+      let (newRemaining = remaining.filter((g) -> !noDeps.contains(g)))
+      // Sort noDeps alphabetically for deterministic output
+      let (sortedNoDeps = noDeps.sortBy((g) -> g.mapping.name))
+        topologicalSortClasses(newRemaining, allLocalClasses, result + sortedNoDeps)
 
-local generatedSorted = generated.sortWith(classComparator)
+local typeAliasGens: List<Gen> = generated.filter((g) -> g is TypeAliasGen)
+local classGens: List<Gen> = generated.filter((g) -> g is ClassGen)
+local classGensTyped: List<ClassGen> = classGens.map((g) -> g as ClassGen)
+local allLocalClasses: List<reflect.Class> = classGensTyped.map((g) -> g.clazz)
+
+// Sort: TypeAliases first (alphabetically), then classes (topologically sorted), module class last
+local sortedClassGens = topologicalSortClasses(classGensTyped, allLocalClasses, List())
+
+// Move module class to the end if present
+local moduleClassGens = sortedClassGens.filter((g) -> utils.isModuleClass(g.clazz))
+local nonModuleClassGens = sortedClassGens.filter((g) -> !utils.isModuleClass(g.clazz))
+
+local generatedSorted: List<Gen> = 
+  typeAliasGens.sortBy((g) -> g.mapping.name) 
+  + nonModuleClassGens 
+  + moduleClassGens
 
 local convenienceLoaders = """
   @classmethod
